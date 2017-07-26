@@ -16,12 +16,12 @@ let dq = {|"|}
 
 
 let f 
-    ~add ~star ~plus
+    ~add ~star ~plus ~header
     (* terminals *)
     ~a
     ~upto_a  
     ~whitespace_and_comments  (* whitespace and comments *)
-    ~_AZS ~azAZs
+    ~_AZs ~azAZs
     ~eof 
     (* nonterminals *)
     ~_GRAMMAR ~_RULES ~_RULE 
@@ -31,6 +31,8 @@ let f
   begin
     let __ = whitespace_and_comments in
     let ( --> ) = add in
+
+    header();
 
     _GRAMMAR --> [_RULES; __; eof ];
     _RULES --> [star ~sep:__ _RULE];
@@ -49,7 +51,7 @@ let f
 
     _TM --> [a sq;upto_a sq;a sq];
     _TM --> [a dq;upto_a dq;a dq];
-    _NT --> [_AZS];
+    _NT --> [_AZs];
     _NT --> [a "?";azAZs;a "?"]
   end
 
@@ -59,4 +61,5 @@ let _ = f
    identified using strings; then we recursively map the generator
    over the rhs-s; see ridge11cpp, grammar_to_parser; a complication
    is that we are using an imperative interface, so avoid problems
-   with let rec and staging of effects such as memoization *)
+   with let rec and staging of effects such as memoization; perhaps
+   just use the above to generate the source code for a p1 parser *)
