@@ -1,0 +1,3 @@
+* `P1_extra`, common combinators etc for p1
+
+See https://github.com/tomjridge/p1_core
