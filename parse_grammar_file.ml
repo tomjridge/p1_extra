@@ -51,8 +51,8 @@ let f
 
     _TM --> [a sq;upto_a sq;a sq];
     _TM --> [a dq;upto_a dq;a dq];
+    _TM --> [a "?";azAZs;a "?"];
     _NT --> [_AZs];
-    _NT --> [a "?";azAZs;a "?"]
   end
 
 let _ = f
@@ -158,11 +158,12 @@ let grammar_to_parser' (* ~seq_list ~alt_list *) ~rules =
   let open P1_core in
   let open P1_combinators in
   let open P1_terminals in
-  let rec nt_to_parser nt = 
+  let rec nt_to_parser' nt = 
     let seq_list xs = seq_list xs >> fun xs -> `Seq_list xs in
-    let alt_list xs = alt_list xs >> fun xs -> `Alt_list (nt,xs) in 
+    let alt_list xs = alt_list xs >> fun xs -> `Alt_list xs in 
     rules |> List.filter (fun (e,_) -> e=nt) |> fun rs ->
     alt_list (rs |> List.map @@ fun r -> r |> snd |> List.map elt_to_parser |> seq_list)
+  and nt_to_parser nt = nt_to_parser' nt >> fun x -> `NT(nt,x)
   and tm_to_parser' = function
     | A s -> a s
     | Upto_a s -> upto_a s

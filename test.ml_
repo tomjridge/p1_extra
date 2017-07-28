@@ -53,164 +53,220 @@ let x = example |> run_parser (grammar_to_parser "Grammar")
 
 FIXME NOTE the following is rather verbose due to the generic nature of grammar_to_parser
 
-# let _ = example |> run_parser (grammar_to_parser "Grammar");;
-- : ([> `Alt_list of string * [> `Seq_list of 'a list ]
-      | `Plus of 'a list
-      | `Star of 'a list
-      | `String of string ]
-     as 'a)
-    list
-=
-[`Alt_list
-   ("Grammar",
-    `Seq_list
-      [`String "\n\n";
-       `Alt_list
-         ("Rules",
-          `Seq_list
-            [`Star
-               [`Alt_list
-                  ("Rule",
-                   `Seq_list
-                     [`Alt_list
-                        ("Sym",
-                         `Seq_list
-                           [`Alt_list ("NT", `Seq_list [`String "S"])]);
-                      `String " "; `String "->"; `String " ";
-                      `Alt_list
-                        ("Rhs",
-                         `Seq_list
-                           [`Plus
-                              [`Alt_list
-                                 ("Symsact",
-                                  `Seq_list
-                                    [`Alt_list
-                                       ("Syms",
-                                        `Seq_list
-                                          [`Plus
-                                             [`Alt_list
-                                                ("Sym",
-                                                 `Seq_list
-                                                   [`Alt_list
-                                                      ("NT",
-                                                       `Seq_list
-                                                         [`String "E"])]);
-                                              `Alt_list
-                                                ("Sym",
-                                                 `Seq_list
-                                                   [`Alt_list
-                                                      ("NT",
-                                                       `Seq_list
-                                                         [`String "?";
-                                                          `String "ws";
-                                                          `String "?"])]);
-                                              `Alt_list
-                                                ("Sym",
-                                                 `Seq_list
-                                                   [`Alt_list
-                                                      ("NT",
-                                                       `Seq_list
-                                                         [`String "?";
-                                                          `String "eof";
-                                                          `String "?"])])]]);
-                                     `String " ";
-                                     `Alt_list
-                                       ("Code",
-                                        `Seq_list
-                                          [`String "{{";
-                                           `String
-                                             " print_endline (x1 |> string_of_int) ";
-                                           `String "}}"])])]])]);
-                `Alt_list
-                  ("Rule",
-                   `Seq_list
-                     [`Alt_list
-                        ("Sym",
-                         `Seq_list
-                           [`Alt_list ("NT", `Seq_list [`String "E"])]);
-                      `String " "; `String "->"; `String " ";
-                      `Alt_list
-                        ("Rhs",
-                         `Seq_list
-                           [`Plus
-                              [`Alt_list
-                                 ("Symsact",
-                                  `Seq_list
-                                    [`Alt_list
-                                       ("Syms",
-                                        `Seq_list
-                                          [`Plus
-                                             [`Alt_list
-                                                ("Sym",
-                                                 `Seq_list
-                                                   [`Alt_list
-                                                      ("NT",
-                                                       `Seq_list
-                                                         [`String "E"])]);
-                                              `Alt_list
-                                                ("Sym",
-                                                 `Seq_list
-                                                   [`Alt_list
-                                                      ("NT",
-                                                       `Seq_list
-                                                         [`String "E"])]);
-                                              `Alt_list
-                                                ("Sym",
-                                                 `Seq_list
-                                                   [`Alt_list
-                                                      ("NT",
-                                                       `Seq_list
-                                                         [`String "E"])])]]);
-                                     `String " ";
-                                     `Alt_list
-                                       ("Code",
-                                        `Seq_list
-                                          [`String "{{"; `String " x+y+z ";
-                                           `String "}}"])]);
-                               `Alt_list
-                                 ("Symsact",
-                                  `Seq_list
-                                    [`Alt_list
-                                       ("Syms",
-                                        `Seq_list
-                                          [`Plus
-                                             [`Alt_list
-                                                ("Sym",
-                                                 `Seq_list
-                                                   [`Alt_list
-                                                      ("TM",
-                                                       `Seq_list
-                                                         [`String "\"";
-                                                          `String "1";
-                                                          `String "\""])])]]);
-                                     `String "  ";
-                                     `Alt_list
-                                       ("Code",
-                                        `Seq_list
-                                          [`String "{{"; `String " 1 ";
-                                           `String "}}"])]);
-                               `Alt_list
-                                 ("Symsact",
-                                  `Seq_list
-                                    [`Alt_list
-                                       ("Syms",
-                                        `Seq_list
-                                          [`Plus
-                                             [`Alt_list
-                                                ("Sym",
-                                                 `Seq_list
-                                                   [`Alt_list
-                                                      ("TM",
-                                                       `Seq_list
-                                                         [`String "\"";
-                                                          `String "";
-                                                          `String "\""])])]]);
-                                     `String "   ";
-                                     `Alt_list
-                                       ("Code",
-                                        `Seq_list
-                                          [`String "{{"; `String " 0 ";
-                                           `String "}}"])])]])])]]);
-       `String "\n\n"; `String ""])]
+FIXME too many nestings in the following?
+
+val x :
+  ([> `NT of string * [> `Alt_list of [> `Seq_list of 'a list ] ]
+    | `Plus of 'a list
+    | `Star of 'a list
+    | `String of string ]
+   as 'a)
+  list =
+  [`NT
+     ("Grammar",
+      `Alt_list
+        (`Seq_list
+           [`String "\n\n";
+            `NT
+              ("Rules",
+               `Alt_list
+                 (`Seq_list
+                    [`Star
+                       [`NT
+                          ("Rule",
+                           `Alt_list
+                             (`Seq_list
+                                [`NT
+                                   ("Sym",
+                                    `Alt_list
+                                      (`Seq_list
+                                         [`NT
+                                            ("NT",
+                                             `Alt_list
+                                               (`Seq_list [`String "S"]))]));
+                                 `String " "; `String "->"; `String " ";
+                                 `NT
+                                   ("Rhs",
+                                    `Alt_list
+                                      (`Seq_list
+                                         [`Plus
+                                            [`NT
+                                               ("Symsact",
+                                                `Alt_list
+                                                  (`Seq_list
+                                                     [`NT
+                                                        ("Syms",
+                                                         `Alt_list
+                                                           (`Seq_list
+                                                              [`Plus
+                                                                 [`NT
+                                                                    ("Sym",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`NT
+                                                                    ("NT",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`String
+                                                                    "E"]))]));
+                                                                  `NT
+                                                                    ("Sym",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`NT
+                                                                    ("TM",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`String
+                                                                    "?";
+                                                                    `String
+                                                                    "ws";
+                                                                    `String
+                                                                    "?"]))]));
+                                                                  `NT
+                                                                    ("Sym",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`NT
+                                                                    ("TM",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`String
+                                                                    "?";
+                                                                    `String
+                                                                    "eof";
+                                                                    `String
+                                                                    "?"]))]))]]));
+                                                      `String " ";
+                                                      `NT
+                                                        ("Code",
+                                                         `Alt_list
+                                                           (`Seq_list
+                                                              [`String "{{";
+                                                               `String
+                                                                 " print_endline (x1 |> string_of_int) ";
+                                                               `String "}}"]))]))]]))]));
+                        `NT
+                          ("Rule",
+                           `Alt_list
+                             (`Seq_list
+                                [`NT
+                                   ("Sym",
+                                    `Alt_list
+                                      (`Seq_list
+                                         [`NT
+                                            ("NT",
+                                             `Alt_list
+                                               (`Seq_list [`String "E"]))]));
+                                 `String " "; `String "->"; `String " ";
+                                 `NT
+                                   ("Rhs",
+                                    `Alt_list
+                                      (`Seq_list
+                                         [`Plus
+                                            [`NT
+                                               ("Symsact",
+                                                `Alt_list
+                                                  (`Seq_list
+                                                     [`NT
+                                                        ("Syms",
+                                                         `Alt_list
+                                                           (`Seq_list
+                                                              [`Plus
+                                                                 [`NT
+                                                                    ("Sym",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`NT
+                                                                    ("NT",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`String
+                                                                    "E"]))]));
+                                                                  `NT
+                                                                    ("Sym",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`NT
+                                                                    ("NT",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`String
+                                                                    "E"]))]));
+                                                                  `NT
+                                                                    ("Sym",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`NT
+                                                                    ("NT",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`String
+                                                                    "E"]))]))]]));
+                                                      `String " ";
+                                                      `NT
+                                                        ("Code",
+                                                         `Alt_list
+                                                           (`Seq_list
+                                                              [`String "{{";
+                                                               `String
+                                                                 " x+y+z ";
+                                                               `String "}}"]))]));
+                                             `NT
+                                               ("Symsact",
+                                                `Alt_list
+                                                  (`Seq_list
+                                                     [`NT
+                                                        ("Syms",
+                                                         `Alt_list
+                                                           (`Seq_list
+                                                              [`Plus
+                                                                 [`NT
+                                                                    ("Sym",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`NT
+                                                                    ("TM",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`String
+                                                                    "\"";
+                                                                    `String
+                                                                    "1";
+                                                                    `String
+                                                                    "\""]))]))]]));
+                                                      `String "  ";
+                                                      `NT
+                                                        ("Code",
+                                                         `Alt_list
+                                                           (`Seq_list
+                                                              [`String "{{";
+                                                               `String " 1 ";
+                                                               `String "}}"]))]));
+                                             `NT
+                                               ("Symsact",
+                                                `Alt_list
+                                                  (`Seq_list
+                                                     [`NT
+                                                        ("Syms",
+                                                         `Alt_list
+                                                           (`Seq_list
+                                                              [`Plus
+                                                                 [`NT
+                                                                    ("Sym",
+                                                                    `Alt_list
+                                                                    (`Seq_list
+                                                                    [`NT ...]));
+                                                                    ...];
+                                                                 ...]));
+                                                        ...]));
+                                               ...];
+                                            ...]));
+                                   ...]));
+                          ...];
+                       ...]));
+              ...]));
+     ...]
+# 
 
 *)
