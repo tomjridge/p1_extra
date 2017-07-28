@@ -32,9 +32,9 @@ let f
     let __ = whitespace_and_comments in
     let ( --> ) = add in
 
-    header();
+    header(); (* FIXME remove? *)
 
-    _GRAMMAR --> [_RULES; __; eof ];
+    _GRAMMAR --> [__;_RULES; __; eof ];
     _RULES --> [star ~sep:__ _RULE];
     _RULE --> [_SYM; __; a "->"; __; _RHS];
 
@@ -143,13 +143,46 @@ let rec elt_to_string elt =
     |> Tjr_string.replace_list
          ~subs:["$s",s]
   | _ -> 
-    elt |> elt_to_yojson |> function `List (`String s::_) -> s | _ -> failwith __LOC__
+    elt |> elt_to_yojson |> function `List (`String s::_) -> s | _ -> (failwith __LOC__)
 
 let _ = Star(Ws,Rules) |> elt_to_yojson
 
 let rs' = rs |> List.map (fun (e,es) -> elt_to_string e,List.map elt_to_string es)
 
 let rs'' = rs' |> List.map (fun (e,es) -> (e, Tjr_string.concat_strings ~sep:" **> " es))
+
+
+(* grammar_to_parser ------------------------------------------------ *)
+
+let grammar_to_parser' (* ~seq_list ~alt_list *) ~rules = 
+  let open P1_core in
+  let open P1_combinators in
+  let open P1_terminals in
+  let rec nt_to_parser nt = 
+    let seq_list xs = seq_list xs >> fun xs -> `Seq_list xs in
+    let alt_list xs = alt_list xs >> fun xs -> `Alt_list (nt,xs) in 
+    rules |> List.filter (fun (e,_) -> e=nt) |> fun rs ->
+    alt_list (rs |> List.map @@ fun r -> r |> snd |> List.map elt_to_parser |> seq_list)
+  and tm_to_parser' = function
+    | A s -> a s
+    | Upto_a s -> upto_a s
+    | Ws -> ws
+    | AZs -> _AZs
+    | AZazs -> _AZazs
+    | Eof -> eof >> fun _ -> ""
+    | _ -> failwith __LOC__
+  and tm_to_parser x = tm_to_parser' x >> fun x -> `String x
+  and elt_to_parser = function
+    | Star(sep,elt) -> star ~sep:(elt_to_parser sep) (elt_to_parser elt) >> fun xs -> `Star xs
+    | Plus(sep,elt) -> plus ~sep:(elt_to_parser sep) (elt_to_parser elt) >> fun xs -> `Plus xs
+    | A _ | Upto_a _ | Ws | AZs | AZazs | Eof as elt -> tm_to_parser elt
+    | Grammar | Rules | Rule | Rhs | Syms | Sym | Symsact | Code | Rhssep | NT | TM as elt -> 
+      nt_to_parser (elt_to_string elt)
+  in
+  nt_to_parser
+  
+let grammar_to_parser = grammar_to_parser' ~rules:(rs |> List.map @@ fun (e,es) -> (elt_to_string e,es))
+
 
 (*
 

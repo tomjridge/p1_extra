@@ -1,6 +1,6 @@
 name="p1_extra"
 description="P1 extra modules (common combinators etc)"
-version="2017-07-26"
+version="2017-07-28"
 requires="tjr_lib,p1_core"
 archive(byte)="p1_extra.cma"
 archive(native)="p1_extra.cmxa"

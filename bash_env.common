@@ -16,7 +16,7 @@ ocamldep="ocamlfind ocamldep $PKGS"
 mk_cma="$DISABLE_BYTE ocamlfind ocamlc"
 mk_cmxa="$DISABLE_NTVE ocamlfind ocamlopt"
 
-mls=p1_combinators.ml #FIXME was `ocamldep -sort -one-line *.ml`
+mls=`ocamldep -sort -one-line *.ml`  # "p1_combinators.ml p1_terminals.ml" #FIXME was 
 cmos="${mls//.ml/.cmo}"
 cmxs="${mls//.ml/.cmx}"
 
