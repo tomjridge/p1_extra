@@ -16,19 +16,25 @@ let dq = {|"|}
 
 let err s = failwith s
 
+(* NOTE this is the grammar of grammars - concrete grammars are
+   expressed using the following format *)
+
 (* FIXME add actions on homogeneous lists to following *)
 let f 
-    ~add_rule ~star ~plus ~header ~add_action
+    ~add_rule ~add_action 
+    ~star ~plus ~opt ~eps
+    ~header 
     (* terminals *)
     ~a
     ~upto_a  
     ~whitespace_and_comments  (* whitespace and comments *)
-    ~_AZs ~azAZs
+    ~_AZs ~azAZs ~re
     ~eof 
     (* nonterminals *)
     ~_GRAMMAR ~_RULES ~_RULE 
-    ~_RHS ~_SYMS ~_SYM ~_SYMSACT ~_CODE ~_RHSSEP
-    ~_NT ~_TM
+    ~_RHS ~_SYMSACT ~_RHSSEP ~_CODE 
+    ~_SYMS ~_VAR_EQ_SYM ~_VAR_EQ 
+    ~_SYM ~_NT ~_TM
   =
   begin
     let __ = whitespace_and_comments in
@@ -48,10 +54,18 @@ let f
       _SYMSACT *--> [_SYMS;__;_CODE] ++ (
         function [`List syms;_;`Code code] -> `Symsact (syms,code)
                | _ -> err __LOC__);
-      _SYMS *--> [plus ~sep:__ _SYM] ++ (fun [x] -> x);
+      _SYMS *--> [plus ~sep:__ _VAR_EQ_SYM] ++ (fun [x] -> x);
 
       _CODE *--> [a "{{";upto_a "}}";a "}}"] ++ (
         function [_;`String c;_] -> `Code c | _ -> err __LOC__);
+
+      _VAR_EQ_SYM *--> [_VAR_EQ; _SYM] ++ (
+        function | [`Some_var v;x] -> `Var_eq(Some v,x)
+                 | [`None_var;x] -> `Var_eq(None,x)
+                 | _ -> err __LOC__);
+      _VAR_EQ *--> [re "[a-z]+";a "="] ++ (
+        function | [`String v;_] -> `Some_var v | _ -> err __LOC__);
+      _VAR_EQ *--> [eps] ++ (fun _ -> `None_var);
 
       _SYM *--> [_NT] ++ (fun [x] -> x);
       _SYM *--> [_TM] ++ (fun [x] -> x);
@@ -81,12 +95,16 @@ let _ = f
 
 
 (* NOTE tm' and nt' are specific to the grammar; elt is generic over these *)
-type tm' = A of string | Upto_a of string | Ws | AZs | AZazs | Eof 
+
+(* FIXME just use RE rather than Ws etc *)
+type tm' = A of string | Upto_a of string | Re of string | Ws | AZs | AZazs | Eof 
 [@@deriving yojson]
 
 type nt' = 
-  | Grammar | Rules | Rule | Rhs | Syms | Sym | Symsact 
-  | Code | Rhssep | NT | TM  [@@deriving yojson]
+  | Grammar | Rules | Rule 
+  | Rhs | Symsact | Code | Rhssep 
+  | Syms | Var_eq_sym | Var_eq 
+  | Sym | NT | TM  [@@deriving yojson]
 
 let nt_to_string nt' = 
   nt' |> nt'_to_yojson 
@@ -110,36 +128,43 @@ module Grammar_to_parser_no_actions = struct
     let add_action r a = r in
     let star ~sep nt = E_star(sep,nt) in
     let plus ~sep nt = E_plus(sep,nt) in
+    let opt = P1_combinators.opt in
     let header () = () in
     let a s = E_TM(A s) in
     let upto_a s = E_TM(Upto_a s) in
     let whitespace_and_comments = E_TM Ws in
     let _AZs = E_TM AZs in
     let azAZs = E_TM AZazs in
+    let re s = E_TM (Re s) in
     let eof = E_TM Eof in
     let _GRAMMAR = E_NT Grammar in
     let _RULES = E_NT Rules in
     let _RULE = E_NT Rule in
     let _RHS = E_NT Rhs in
-    let _SYMS = E_NT Syms in
-    let _SYM = E_NT Sym in
     let _SYMSACT = E_NT Symsact in
     let _CODE = E_NT Code in
     let _RHSSEP = E_NT Rhssep in
+    let _SYMS = E_NT Syms in
+    let _VAR_EQ_SYM = E_NT Var_eq_sym in
+    let _VAR_EQ = E_NT Var_eq in
+    let _SYM = E_NT Sym in
     let _NT = E_NT NT in
     let _TM = E_NT TM in  (* TM is a nonterminal - it expands to 'x' etc *)
     ignore (f 
-              ~add_rule ~star ~plus ~header ~add_action
+              ~add_rule ~add_action
+              ~star ~plus ~opt ~eps:(a "")
+              ~header 
               (* terminals *)
               ~a
               ~upto_a  
               ~whitespace_and_comments  (* whitespace and comments *)
-              ~_AZs ~azAZs
+              ~_AZs ~azAZs ~re
               ~eof 
               (* nonterminals *)
               ~_GRAMMAR ~_RULES ~_RULE 
-              ~_RHS ~_SYMS ~_SYM ~_SYMSACT ~_CODE ~_RHSSEP
-              ~_NT ~_TM);
+              ~_RHS ~_SYMSACT ~_CODE ~_RHSSEP
+              ~_SYMS ~_VAR_EQ_SYM ~_VAR_EQ  
+              ~_SYM ~_NT ~_TM);
     List.rev !rs
 
   let rs = f' ()
@@ -243,36 +268,43 @@ let f'' () =
   let add_action (nt,rhs) a = rs:=(nt,rhs,a)::!rs in
   let star ~sep nt = E_star(sep,nt) in
   let plus ~sep nt = E_plus(sep,nt) in
+  let opt = P1_combinators.opt in
   let header () = () in
   let a s = E_TM(A s) in
   let upto_a s = E_TM(Upto_a s) in
   let whitespace_and_comments = E_TM Ws in
   let _AZs = E_TM AZs in
   let azAZs = E_TM AZazs in
+  let re s = E_TM (Re s) in
   let eof = E_TM Eof in
   let _GRAMMAR = E_NT Grammar in
   let _RULES = E_NT Rules in
   let _RULE = E_NT Rule in
   let _RHS = E_NT Rhs in
-  let _SYMS = E_NT Syms in
-  let _SYM = E_NT Sym in
   let _SYMSACT = E_NT Symsact in
   let _CODE = E_NT Code in
   let _RHSSEP = E_NT Rhssep in
+  let _SYMS = E_NT Syms in
+  let _VAR_EQ_SYM = E_NT Var_eq_sym in
+  let _VAR_EQ = E_NT Var_eq in
+  let _SYM = E_NT Sym in
   let _NT = E_NT NT in
   let _TM = E_NT TM in  (* TM is a nonterminal - it expands to 'x' etc *)
   ignore (f 
-    ~add_rule ~star ~plus ~header ~add_action
-    (* terminals *)
-    ~a
-    ~upto_a  
-    ~whitespace_and_comments  (* whitespace and comments *)
-    ~_AZs ~azAZs
-    ~eof 
-    (* nonterminals *)
-    ~_GRAMMAR ~_RULES ~_RULE 
-    ~_RHS ~_SYMS ~_SYM ~_SYMSACT ~_CODE ~_RHSSEP
-    ~_NT ~_TM);
+            ~add_rule ~add_action
+            ~star ~plus ~opt ~eps:(a "")
+            ~header 
+            (* terminals *)
+            ~a
+            ~upto_a  
+            ~whitespace_and_comments  (* whitespace and comments *)
+            ~_AZs ~azAZs ~re
+            ~eof 
+            (* nonterminals *)
+            ~_GRAMMAR ~_RULES ~_RULE 
+            ~_RHS ~_SYMSACT ~_CODE ~_RHSSEP
+            ~_SYMS ~_VAR_EQ_SYM ~_VAR_EQ  
+            ~_SYM ~_NT ~_TM);
   List.rev !rs
 
 let _ = 
@@ -301,6 +333,7 @@ let grammar_to_parser' ~rules =
     | Ws -> ws
     | AZs -> _AZs
     | AZazs -> _AZazs
+    | Re s -> re (Str.regexp s)
     | Eof -> eof >> fun _ -> ""
   and tm_to_parser x = tm_to_parser' x >> fun x -> `String x
   and elt_to_parser = function

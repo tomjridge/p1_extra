@@ -55,10 +55,12 @@ and pp_sas = function
   | `Symsact (syms,code) -> (List.map pp_sym syms,code)
   | _ -> err __LOC__
 and pp_sym = function
-  | `Nt s -> `Nt s
-  | `Dq s -> `Dq s
-  | `Qu s -> `Qu s
-  | `Sq s -> `Sq s
+  | `Var_eq (None,x) -> (x |> function
+    | `Nt s -> `Nt s
+    | `Dq s -> `Dq s
+    | `Qu s -> `Qu s
+    | `Sq s -> `Sq s
+    | _ -> err __LOC__)
   | _ -> err __LOC__
 and pp_rules = function
   | `List rs -> List.map pp_rule rs
@@ -66,10 +68,13 @@ and pp_rules = function
 
 let x = 
   example |> run_parser (grammar_to_parser "Grammar") 
-  |> function [x] -> x |> pp_rules
+  |> function [x] -> x 
+
+let x' = x|> pp_rules
 
 ;;
 (* 
+let x' = x|> pp_rules
 
 val x :
   (string *
