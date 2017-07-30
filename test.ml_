@@ -52,7 +52,13 @@ let rec pp_rule = function
   | `Rule(`Nt nt,`Rhs[`List sas]) -> (nt,List.map pp_sas sas)
   | _ -> err __LOC__
 and pp_sas = function
-  | `Symsact (syms,code) -> (syms,code)
+  | `Symsact (syms,code) -> (List.map pp_sym syms,code)
+  | _ -> err __LOC__
+and pp_sym = function
+  | `Nt s -> `Nt s
+  | `Dq s -> `Dq s
+  | `Qu s -> `Qu s
+  | `Sq s -> `Sq s
   | _ -> err __LOC__
 and pp_rules = function
   | `List rs -> List.map pp_rule rs
@@ -62,25 +68,12 @@ let x =
   example |> run_parser (grammar_to_parser "Grammar") 
   |> function [x] -> x |> pp_rules
 
+;;
 (* 
-
-NOTE the following type is too general - we know some of hte constructors are not possible/are too general
 
 val x :
   (string *
-   ((([> `Code of string
-       | `Dq of string
-       | `Ignore
-       | `List of 'a
-       | `Nt of string
-       | `Qu of string
-       | `Rhs of 'b list
-       | `Rule of 'b * 'b
-       | `Sq of string
-       | `String of string
-       | `Symsact of 'a * string ]
-      as 'b)
-     list as 'a) *
+   ([> `Dq of string | `Nt of string | `Qu of string | `Sq of string ] list *
     string)
    list)
   list =
@@ -90,8 +83,11 @@ val x :
    ("E",
     [([`Nt "E"; `Nt "E"; `Nt "E"], " x+y+z "); ([`Dq "1"], " 1 ");
      ([`Dq ""], " 0 ")])]
+
 *)
 
+
+;;
 
 (* old --------------------------------------------------------------------- *)
 
