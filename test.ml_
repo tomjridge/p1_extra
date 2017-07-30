@@ -47,13 +47,49 @@ E -> E E E {{ x+y+z }}
 
 |}
 
-[@@@warning "-8"]
-
 (* FIXME the following pretty printing is horrible; add actions to grammar_to_parser *)
 
 let x = 
   example |> run_parser (grammar_to_parser "Grammar") 
-  |> function [x] -> x | _ -> failwith __LOC__
+  |> function [x] -> x
+
+(* 
+val x :
+  [> `Code of string
+   | `Dq of string
+   | `Ignore
+   | `List of 'a list
+   | `Nt of string
+   | `Qu of string
+   | `Rhs of 'a list
+   | `Rule of 'a * 'a
+   | `Rules of 'a
+   | `Sq of string
+   | `String of string
+   | `Symsact of 'a list * string ]
+  as 'a =
+  `Rules
+    (`List
+       [`Rule
+          (`Nt "S",
+           `Rhs
+             [`List
+                [`Symsact
+                   ([`Nt "E"; `Qu "ws"; `Qu "eof"],
+                    " print_endline (x1 |> string_of_int) ")]]);
+        `Rule
+          (`Nt "E",
+           `Rhs
+             [`List
+                [`Symsact ([`Nt "E"; `Nt "E"; `Nt "E"], " x+y+z ");
+                 `Symsact ([`Dq "1"], " 1 "); `Symsact ([`Dq ""], " 0 ")]])])
+*)
+
+
+(* old --------------------------------------------------------------------- *)
+
+
+(*
 
 let rec pp x = 
   match x with
@@ -61,10 +97,6 @@ let rec pp x =
   | `String (s:string) -> `String s
   | `Star xs -> `Star (List.map pp xs)
   | `Plus xs -> `Star (List.map pp xs)
-  
-
-let _ = pp x
-
 
 let pp_sym = function
     `NT ("Sym", [`NT ("NT", [`String xxx])]) -> `NT xxx
@@ -224,4 +256,5 @@ let _ = pp x |> pp2
     `String "\n\n"; `String ""])
 # 
 
+*)
 *)
