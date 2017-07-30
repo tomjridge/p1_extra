@@ -47,226 +47,181 @@ E -> E E E {{ x+y+z }}
 
 |}
 
-let x = example |> run_parser (grammar_to_parser "Grammar")
+[@@@warning "-8"]
+
+(* FIXME the following pretty printing is horrible; add actions to grammar_to_parser *)
+
+let x = 
+  example |> run_parser (grammar_to_parser "Grammar") 
+  |> function [x] -> x | _ -> failwith __LOC__
+
+let rec pp x = 
+  match x with
+  | `NT((s:string),`Alt_list(`Seq_list xs)) -> `NT(s,xs|>List.map pp)
+  | `String (s:string) -> `String s
+  | `Star xs -> `Star (List.map pp xs)
+  | `Plus xs -> `Star (List.map pp xs)
+  
+
+let _ = pp x
+
+
+let pp_sym = function
+    `NT ("Sym", [`NT ("NT", [`String xxx])]) -> `NT xxx
+  | `NT ("Sym", [`NT ("TM", [`String c; `String tm; `String _])]) -> `TM(c,tm)
+  | _ -> (failwith __LOC__)
+
+let pp_symsact = function
+`NT
+     ("Symsact",
+      [`NT
+         ("Syms",
+          [`Star xxx]); _; _]) -> List.map pp_sym xxx
+  | _ -> (failwith __LOC__)
+   
+let pp_rule xs = 
+  match xs with
+  | [`NT ("Sym", [`NT ("NT", [`String xxx])]); `String _;
+     `String "->"; `String _;
+     `NT
+       ("Rhs",
+        [`Star symsacts])] -> (xxx,List.map pp_symsact symsacts)
+  | _ -> (failwith __LOC__)
+
+let pp2 x = 
+  let rs = ref [] in
+  let rec pp2 x = 
+    match x with
+    | `NT(x,xs) -> (
+        match x with
+        | "Rule" -> pp_rule xs |> fun x -> rs:=x::!rs
+        | _ -> List.iter pp2 xs)
+    | `Star xs -> List.iter pp2 xs
+    | `String xs -> ()
+  in
+  pp2 x; List.rev !rs
+
+let _ = pp x |> pp2 
 
 (*
 
-FIXME NOTE the following is rather verbose due to the generic nature of grammar_to_parser
+# let _ = pp x |> pp2;;
+- : (string * [> `NT of string | `TM of string * string ] list list) list =
+[("S", [[`NT "E"; `TM ("?", "ws"); `TM ("?", "eof")]]);
+ ("E", [[`NT "E"; `NT "E"; `NT "E"]; [`TM ("\"", "1")]; [`TM ("\"", "")]])]
 
-FIXME too many nestings in the following?
 
-val x :
-  ([> `NT of string * [> `Alt_list of [> `Seq_list of 'a list ] ]
-    | `Plus of 'a list
-    | `Star of 'a list
-    | `String of string ]
-   as 'a)
-  list =
-  [`NT
-     ("Grammar",
-      `Alt_list
-        (`Seq_list
-           [`String "\n\n";
-            `NT
-              ("Rules",
-               `Alt_list
-                 (`Seq_list
-                    [`Star
-                       [`NT
-                          ("Rule",
-                           `Alt_list
-                             (`Seq_list
+# let _ = pp x |> pp2;;
+- : (string *
+     (([ `NT of string * 'b list | `Star of 'a | `String of string ] as 'b)
+      list as 'a)
+     list)
+    list
+=
+[("S",
+  [[`NT ("Sym", [`NT ("NT", [`String "E"])]);
+    `NT ("Sym", [`NT ("TM", [`String "?"; `String "ws"; `String "?"])]);
+    `NT ("Sym", [`NT ("TM", [`String "?"; `String "eof"; `String "?"])])]]);
+ ("E",
+  [[`NT ("Sym", [`NT ("NT", [`String "E"])]);
+    `NT ("Sym", [`NT ("NT", [`String "E"])]);
+    `NT ("Sym", [`NT ("NT", [`String "E"])])];
+   [`NT ("Sym", [`NT ("TM", [`String "\""; `String "1"; `String "\""])])];
+   [`NT ("Sym", [`NT ("TM", [`String "\""; `String ""; `String "\""])])]])]
+
+
+
+
+# let _ = pp x;;
+- : [> `NT of string * 'a list | `Star of 'a list | `String of string ] as 'a
+=
+`NT
+  ("Grammar",
+   [`String "\n\n";
+    `NT
+      ("Rules",
+       [`Star
+          [`NT
+             ("Rule",
+              [`NT ("Sym", [`NT ("NT", [`String "S"])]); `String " ";
+               `String "->"; `String " ";
+               `NT
+                 ("Rhs",
+                  [`Star
+                     [`NT
+                        ("Symsact",
+                         [`NT
+                            ("Syms",
+                             [`Star
+                                [`NT ("Sym", [`NT ("NT", [`String "E"])]);
+                                 `NT
+                                   ("Sym",
+                                    [`NT
+                                       ("TM",
+                                        [`String "?"; `String "ws";
+                                         `String "?"])]);
+                                 `NT
+                                   ("Sym",
+                                    [`NT
+                                       ("TM",
+                                        [`String "?"; `String "eof";
+                                         `String "?"])])]]);
+                          `String " ";
+                          `NT
+                            ("Code",
+                             [`String "{{";
+                              `String " print_endline (x1 |> string_of_int) ";
+                              `String "}}"])])]])]);
+           `NT
+             ("Rule",
+              [`NT ("Sym", [`NT ("NT", [`String "E"])]); `String " ";
+               `String "->"; `String " ";
+               `NT
+                 ("Rhs",
+                  [`Star
+                     [`NT
+                        ("Symsact",
+                         [`NT
+                            ("Syms",
+                             [`Star
+                                [`NT ("Sym", [`NT ("NT", [`String "E"])]);
+                                 `NT ("Sym", [`NT ("NT", [`String "E"])]);
+                                 `NT ("Sym", [`NT ("NT", [`String "E"])])]]);
+                          `String " ";
+                          `NT
+                            ("Code",
+                             [`String "{{"; `String " x+y+z "; `String "}}"])]);
+                      `NT
+                        ("Symsact",
+                         [`NT
+                            ("Syms",
+                             [`Star
                                 [`NT
                                    ("Sym",
-                                    `Alt_list
-                                      (`Seq_list
-                                         [`NT
-                                            ("NT",
-                                             `Alt_list
-                                               (`Seq_list [`String "S"]))]));
-                                 `String " "; `String "->"; `String " ";
-                                 `NT
-                                   ("Rhs",
-                                    `Alt_list
-                                      (`Seq_list
-                                         [`Plus
-                                            [`NT
-                                               ("Symsact",
-                                                `Alt_list
-                                                  (`Seq_list
-                                                     [`NT
-                                                        ("Syms",
-                                                         `Alt_list
-                                                           (`Seq_list
-                                                              [`Plus
-                                                                 [`NT
-                                                                    ("Sym",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`NT
-                                                                    ("NT",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`String
-                                                                    "E"]))]));
-                                                                  `NT
-                                                                    ("Sym",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`NT
-                                                                    ("TM",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`String
-                                                                    "?";
-                                                                    `String
-                                                                    "ws";
-                                                                    `String
-                                                                    "?"]))]));
-                                                                  `NT
-                                                                    ("Sym",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`NT
-                                                                    ("TM",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`String
-                                                                    "?";
-                                                                    `String
-                                                                    "eof";
-                                                                    `String
-                                                                    "?"]))]))]]));
-                                                      `String " ";
-                                                      `NT
-                                                        ("Code",
-                                                         `Alt_list
-                                                           (`Seq_list
-                                                              [`String "{{";
-                                                               `String
-                                                                 " print_endline (x1 |> string_of_int) ";
-                                                               `String "}}"]))]))]]))]));
-                        `NT
-                          ("Rule",
-                           `Alt_list
-                             (`Seq_list
+                                    [`NT
+                                       ("TM",
+                                        [`String "\""; `String "1";
+                                         `String "\""])])]]);
+                          `String "  ";
+                          `NT
+                            ("Code",
+                             [`String "{{"; `String " 1 "; `String "}}"])]);
+                      `NT
+                        ("Symsact",
+                         [`NT
+                            ("Syms",
+                             [`Star
                                 [`NT
                                    ("Sym",
-                                    `Alt_list
-                                      (`Seq_list
-                                         [`NT
-                                            ("NT",
-                                             `Alt_list
-                                               (`Seq_list [`String "E"]))]));
-                                 `String " "; `String "->"; `String " ";
-                                 `NT
-                                   ("Rhs",
-                                    `Alt_list
-                                      (`Seq_list
-                                         [`Plus
-                                            [`NT
-                                               ("Symsact",
-                                                `Alt_list
-                                                  (`Seq_list
-                                                     [`NT
-                                                        ("Syms",
-                                                         `Alt_list
-                                                           (`Seq_list
-                                                              [`Plus
-                                                                 [`NT
-                                                                    ("Sym",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`NT
-                                                                    ("NT",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`String
-                                                                    "E"]))]));
-                                                                  `NT
-                                                                    ("Sym",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`NT
-                                                                    ("NT",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`String
-                                                                    "E"]))]));
-                                                                  `NT
-                                                                    ("Sym",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`NT
-                                                                    ("NT",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`String
-                                                                    "E"]))]))]]));
-                                                      `String " ";
-                                                      `NT
-                                                        ("Code",
-                                                         `Alt_list
-                                                           (`Seq_list
-                                                              [`String "{{";
-                                                               `String
-                                                                 " x+y+z ";
-                                                               `String "}}"]))]));
-                                             `NT
-                                               ("Symsact",
-                                                `Alt_list
-                                                  (`Seq_list
-                                                     [`NT
-                                                        ("Syms",
-                                                         `Alt_list
-                                                           (`Seq_list
-                                                              [`Plus
-                                                                 [`NT
-                                                                    ("Sym",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`NT
-                                                                    ("TM",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`String
-                                                                    "\"";
-                                                                    `String
-                                                                    "1";
-                                                                    `String
-                                                                    "\""]))]))]]));
-                                                      `String "  ";
-                                                      `NT
-                                                        ("Code",
-                                                         `Alt_list
-                                                           (`Seq_list
-                                                              [`String "{{";
-                                                               `String " 1 ";
-                                                               `String "}}"]))]));
-                                             `NT
-                                               ("Symsact",
-                                                `Alt_list
-                                                  (`Seq_list
-                                                     [`NT
-                                                        ("Syms",
-                                                         `Alt_list
-                                                           (`Seq_list
-                                                              [`Plus
-                                                                 [`NT
-                                                                    ("Sym",
-                                                                    `Alt_list
-                                                                    (`Seq_list
-                                                                    [`NT ...]));
-                                                                    ...];
-                                                                 ...]));
-                                                        ...]));
-                                               ...];
-                                            ...]));
-                                   ...]));
-                          ...];
-                       ...]));
-              ...]));
-     ...]
+                                    [`NT
+                                       ("TM",
+                                        [`String "\""; `String "";
+                                         `String "\""])])]]);
+                          `String "   ";
+                          `NT
+                            ("Code",
+                             [`String "{{"; `String " 0 "; `String "}}"])])]])])]]);
+    `String "\n\n"; `String ""])
 # 
 
 *)
