@@ -47,42 +47,49 @@ E -> E E E {{ x+y+z }}
 
 |}
 
-(* FIXME the following pretty printing is horrible; add actions to grammar_to_parser *)
+(* FIXME move elsewhere *)
+let rec pp_rule = function
+  | `Rule(`Nt nt,`Rhs[`List sas]) -> (nt,List.map pp_sas sas)
+  | _ -> err __LOC__
+and pp_sas = function
+  | `Symsact (syms,code) -> (syms,code)
+  | _ -> err __LOC__
+and pp_rules = function
+  | `List rs -> List.map pp_rule rs
+  | _ -> (err __LOC__)
 
 let x = 
   example |> run_parser (grammar_to_parser "Grammar") 
-  |> function [x] -> x
+  |> function [x] -> x |> pp_rules
 
 (* 
+
+NOTE the following type is too general - we know some of hte constructors are not possible/are too general
+
 val x :
-  [> `Code of string
-   | `Dq of string
-   | `Ignore
-   | `List of 'a list
-   | `Nt of string
-   | `Qu of string
-   | `Rhs of 'a list
-   | `Rule of 'a * 'a
-   | `Rules of 'a
-   | `Sq of string
-   | `String of string
-   | `Symsact of 'a list * string ]
-  as 'a =
-  `Rules
-    (`List
-       [`Rule
-          (`Nt "S",
-           `Rhs
-             [`List
-                [`Symsact
-                   ([`Nt "E"; `Qu "ws"; `Qu "eof"],
-                    " print_endline (x1 |> string_of_int) ")]]);
-        `Rule
-          (`Nt "E",
-           `Rhs
-             [`List
-                [`Symsact ([`Nt "E"; `Nt "E"; `Nt "E"], " x+y+z ");
-                 `Symsact ([`Dq "1"], " 1 "); `Symsact ([`Dq ""], " 0 ")]])])
+  (string *
+   ((([> `Code of string
+       | `Dq of string
+       | `Ignore
+       | `List of 'a
+       | `Nt of string
+       | `Qu of string
+       | `Rhs of 'b list
+       | `Rule of 'b * 'b
+       | `Sq of string
+       | `String of string
+       | `Symsact of 'a * string ]
+      as 'b)
+     list as 'a) *
+    string)
+   list)
+  list =
+  [("S",
+    [([`Nt "E"; `Qu "ws"; `Qu "eof"],
+      " print_endline (x1 |> string_of_int) ")]);
+   ("E",
+    [([`Nt "E"; `Nt "E"; `Nt "E"], " x+y+z "); ([`Dq "1"], " 1 ");
+     ([`Dq ""], " 0 ")])]
 *)
 
 
