@@ -2,18 +2,19 @@
 
 (* interactive top-level testing having installed ml files *)
 
+(*
 #require "p1_core";;
 #require "p1_extra";;
-
+*)
 
 
 (* examples --------------------------------------------------------- *)
 
-open Tjr_substring
 open P1_combinators 
 
 (* for testing FIXME use Tjr_substring.a *)
-let a1 (s:substring_) = (
+let a1 (s:Tjr_substring.substring_) = (
+  let open Tjr_substring in
   if s.i_ < s.j_ && s.s_.[s.i_] = '1' then
     [("1",{s with i_ = s.i_ + 1})]
   else
@@ -30,6 +31,10 @@ let _ = "111111" |> run_parser (iter ~n:5 a1)
 ;;
 let _ = "1111" |> run_parser (star ~sep:eps a1)
 
+open P1_terminals
+
+let a1 = a "1"
+let _ = "11111" |> run_parser (iter ~n:5 a1)
 
 (* parse_grammar_file ----------------------------------------------- *)
 
@@ -87,15 +92,14 @@ let rs : rule list =
 
 (* code gen --------------------------------------------------------- *)
 
-
-let pp_sym = String.(function
+let cg_sym = String.(function
   | `Nt s -> "_"^s  (* prefix with an underscore since we need nts to be func names *)
   | `Qu s -> s
   | `Sq s -> "a "^dq^(escaped s)^dq  (* FIXME protect *)
   | `Dq s -> "a "^dq^(escaped s)^dq
   )
 
-let pp_elt = function `Elt (_,sym) -> pp_sym sym
+let cg_elt = function `Elt (_,sym) -> cg_sym sym
 
 let _fun n = 
   begin
@@ -114,17 +118,73 @@ let _fun n =
   in
   "fun "^pp vs^" -> "
 
-let pp_rule r = (
-  pp_sym (`Nt r.nt) ^ " = " ^ begin
-    r.rhs 
-    |> List.map (fun (es,code) -> 
-        es |> List.map pp_elt |> Tjr_string.concat_strings ~sep:" **> " |> fun es' ->
-        "("^es'^" >> ("^_fun (List.length es)^code^") )")
-    |> Tjr_string.concat_strings ~sep:"|||\n    "
-  end)
+let cg_rule r =
+  (fun (es,code) -> 
+     es |> List.map cg_elt |> Tjr_string.concat_strings ~sep:" **> " |> fun es' ->
+     "("^es'^" >> ("^_fun (List.length es)^code^") )")
+  |> fun f ->
+  r.rhs 
+  |> List.map f 
+  |> Tjr_string.concat_strings ~sep:"|||\n    "
+  |> fun rhs -> 
+  "check "^dq^r.nt^dq^" (\n    "^rhs^")"
+  |> fun rhs -> 
+  cg_sym (`Nt r.nt) ^ " i = "^rhs^" i"    
 
-let pp_rules rs = 
-  rs |> List.map pp_rule |> Tjr_string.concat_strings ~sep:" and \n\n" |> fun body ->
+let cg_rules rs = 
+  rs |> List.map cg_rule |> Tjr_string.concat_strings ~sep:" and \n\n" |> fun body ->
   "let rec \n"^ body
 
-let _ = pp_rules rs |> print_endline
+
+(* testing ---------------------------------------------------------- *)
+
+let example = {|
+
+S -> e=E ?ws? ?eof? {{ print_endline (x1 |> string_of_int) }}
+
+E -> x=E y=E z=E {{ x1+x2+x3 }}
+| "1"  {{ 1 }}
+| ""   {{ 0 }}
+
+|}
+
+let rs = 
+  example
+  |> run_parser (grammar_to_parser "Grammar") 
+  |> (function [x] -> x)
+  |> pp_rules
+  |> List.map (fun (nt,rhs) -> {nt;rhs})
+
+
+let _ = cg_rules rs |> print_endline
+
+open P1_core
+
+let f ~ws ~eof ~a = 
+let rec 
+_S i = check "S" (
+    ((_E **> ws **> eof) >> (fun (x1,(x2,x3)) ->  print_endline (x1 |> string_of_int) ) )) i and 
+
+_E i = check "E" (
+    ((_E **> _E **> _E) >> (fun (x1,(x2,x3)) ->  x1+x2+x3 ) )|||
+    ((a "1") >> (fun x1 ->  1 ) )|||
+    ((a "") >> (fun x1 ->  0 ) )) i
+
+in
+_S
+
+open P1_terminals
+
+let _S = P1_terminals.(f ~ws ~eof ~a)
+
+(* need to check of course *)
+let _ = "111 " |> run_parser _S
+
+(*
+let _ = "111 " |> run_parser _S
+
+(* FIXME looping at the moment *)
+
+
+let _ = "111" |> run_parser (a "" **> a "111")
+*)

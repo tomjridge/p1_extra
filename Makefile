@@ -8,7 +8,7 @@ all: FORCE
 	$$mk_cma -g -a -o $$libname.cma $$cmos
 	$$mk_cmxa -g -a -o $$libname.cmxa $$cmxs
 	$(MAKE) install
-
+	$$ocamlopt -linkpkg -package $$libname -impl test.ml_ 
 
 install:
 	-ocamlfind remove $$package_name
