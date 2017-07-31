@@ -9,9 +9,6 @@ all: FORCE
 	$$mk_cmxa -g -a -o $$libname.cmxa $$cmxs
 	$(MAKE) install
 
-bin:
-	$$ocamlopt -linkpkg -package $$libname test.ml
-
 install:
 	-ocamlfind remove $$package_name
 	mk_meta
@@ -19,5 +16,6 @@ install:
 
 clean:
 	rm -f *.{cmi,cmo,cmx,o,a,cmxa,cma}
+	$(MAKE) -C bin clean
 
 FORCE:

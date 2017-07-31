@@ -1,2 +1,2 @@
-PKG tjr_lib p1_core p1_extra
+PKG tjr_lib p1_core 
 FLG -w -8
