@@ -13,6 +13,7 @@ let i2p : input -> string_position = String_position.(fun i -> {s_=i.ss.s_;i_=i.
 let a lit : string parser_ = fun i -> 
   i |> i2p 
   |> a lit 
+  |> List.filter (fun j -> j <= i.ss.j_)
   |> (List.map @@ fun i' -> (lit,{i.ss with i_=i' }))
 
 let index_to_string i i' = sub ~i:i.ss.i_ ~j:i' i.ss.s_,{i.ss with i_=i' }
@@ -20,11 +21,13 @@ let index_to_string i i' = sub ~i:i.ss.i_ ~j:i' i.ss.s_,{i.ss with i_=i' }
 let upto_a lit : string parser_ = fun i -> 
   i |> i2p 
   |> upto_a lit 
+  |> List.filter (fun j -> j <= i.ss.j_)
   |> List.map @@ fun i' -> index_to_string i i'
 
 let re re : string parser_ = fun i -> 
   i |> i2p
   |> Tjr_substring.re ~re
+  |> List.filter (fun j -> j <= i.ss.j_)
   |> List.map @@ fun i' -> index_to_string i i'
 
 (* NOTE empty string not accepted for following *)

@@ -2,10 +2,8 @@
 
 (* interactive top-level testing having installed ml files *)
 
-(*
 #require "p1_core";;
 #require "p1_extra";;
-*)
 
 
 (* examples --------------------------------------------------------- *)
@@ -35,6 +33,18 @@ open P1_terminals
 
 let a1 = a "1"
 let _ = "11111" |> run_parser (iter ~n:5 a1)
+
+
+
+
+let rec _E i = (
+  check "E" (
+    ((_E **> _E **> _E) >> fun (x,(y,z)) -> x+y+z)
+    ||| (a1 >> fun _ -> 1)
+    ||| (eps >> fun _ -> 0)) i)
+
+let _ = "111" |> run_parser _E   (* FIXME currently assert failure *)
+
 
 (* parse_grammar_file ----------------------------------------------- *)
 
@@ -179,12 +189,3 @@ let _S = P1_terminals.(f ~ws ~eof ~a)
 
 (* need to check of course *)
 let _ = "111 " |> run_parser _S
-
-(*
-let _ = "111 " |> run_parser _S
-
-(* FIXME looping at the moment *)
-
-
-let _ = "111" |> run_parser (a "" **> a "111")
-*)
