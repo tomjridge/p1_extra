@@ -41,8 +41,6 @@ let _ = "111" |> run_parser _E
 
 open Parse_grammar_file
 
-let _ = grammar_to_parser
-
 let example = {|
 
 S -> e=E ?ws? ?eof? {{ print_endline (x1 |> string_of_int) }}
@@ -91,7 +89,6 @@ let cg_rule r =
      |> fun es' ->
      "("^es'^" >> ("^_fun (List.length es)^code^") )")
   |> fun f ->
-  let open Improved_typing in
   r.rhs 
   |> List.map f 
   |> Tjr_string.concat_strings ~sep:"|||\n  "
