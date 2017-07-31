@@ -39,9 +39,9 @@ let _ = grammar_to_parser
 
 let example = {|
 
-S -> E ?ws? ?eof? {{ print_endline (x1 |> string_of_int) }}
+S -> e=E ?ws? ?eof? {{ print_endline (x1 |> string_of_int) }}
 
-E -> E E E {{ x+y+z }}
+E -> x=E y=E z=E {{ x+y+z }}
 | "1"  {{ 1 }}
 | ""   {{ 0 }}
 
@@ -54,13 +54,15 @@ let rec pp_rule = function
 and pp_sas = function
   | `Symsact (syms,code) -> (List.map pp_sym syms,code)
   | _ -> err __LOC__
-and pp_sym = function
-  | `Var_eq (None,x) -> (x |> function
+and pp_sym' = function
     | `Nt s -> `Nt s
     | `Dq s -> `Dq s
     | `Qu s -> `Qu s
     | `Sq s -> `Sq s
-    | _ -> err __LOC__)
+    | _ -> err __LOC__
+and pp_sym = function
+  | `Var_eq (None,x) -> (`Elt(None,x |> pp_sym'))
+  | `Var_eq (Some v,x) -> (`Elt(Some v,x |> pp_sym'))
   | _ -> err __LOC__
 and pp_rules = function
   | `List rs -> List.map pp_rule rs
@@ -72,197 +74,57 @@ let x =
 
 let x' = x|> pp_rules
 
-;;
-(* 
-let x' = x|> pp_rules
+type sym = [ `Nt of string | `Qu of string | `Sq of string | `Dq of string ]
 
-val x :
-  (string *
-   ([> `Dq of string | `Nt of string | `Qu of string | `Sq of string ] list *
-    string)
-   list)
-  list =
-  [("S",
-    [([`Nt "E"; `Qu "ws"; `Qu "eof"],
-      " print_endline (x1 |> string_of_int) ")]);
-   ("E",
-    [([`Nt "E"; `Nt "E"; `Nt "E"], " x+y+z "); ([`Dq "1"], " 1 ");
-     ([`Dq ""], " 0 ")])]
+type elt = [ `Elt of (string option * sym) ]
 
-*)
+type rule = {nt:string; rhs: (elt list * string) list }
+
+let rs : rule list = 
+  x' 
+  |> List.map (fun (nt,rhs) -> {nt;rhs})
 
 
-;;
-
-(* old --------------------------------------------------------------------- *)
+(* code gen --------------------------------------------------------- *)
 
 
-(*
+let pp_sym = String.(function
+  | `Nt s -> "_"^s  (* prefix with an underscore since we need nts to be func names *)
+  | `Qu s -> s
+  | `Sq s -> "a "^dq^(escaped s)^dq  (* FIXME protect *)
+  | `Dq s -> "a "^dq^(escaped s)^dq
+  )
 
-let rec pp x = 
-  match x with
-  | `NT((s:string),`Alt_list(`Seq_list xs)) -> `NT(s,xs|>List.map pp)
-  | `String (s:string) -> `String s
-  | `Star xs -> `Star (List.map pp xs)
-  | `Plus xs -> `Star (List.map pp xs)
+let pp_elt = function `Elt (_,sym) -> pp_sym sym
 
-let pp_sym = function
-    `NT ("Sym", [`NT ("NT", [`String xxx])]) -> `NT xxx
-  | `NT ("Sym", [`NT ("TM", [`String c; `String tm; `String _])]) -> `TM(c,tm)
-  | _ -> (failwith __LOC__)
-
-let pp_symsact = function
-`NT
-     ("Symsact",
-      [`NT
-         ("Syms",
-          [`Star xxx]); _; _]) -> List.map pp_sym xxx
-  | _ -> (failwith __LOC__)
-   
-let pp_rule xs = 
-  match xs with
-  | [`NT ("Sym", [`NT ("NT", [`String xxx])]); `String _;
-     `String "->"; `String _;
-     `NT
-       ("Rhs",
-        [`Star symsacts])] -> (xxx,List.map pp_symsact symsacts)
-  | _ -> (failwith __LOC__)
-
-let pp2 x = 
-  let rs = ref [] in
-  let rec pp2 x = 
-    match x with
-    | `NT(x,xs) -> (
-        match x with
-        | "Rule" -> pp_rule xs |> fun x -> rs:=x::!rs
-        | _ -> List.iter pp2 xs)
-    | `Star xs -> List.iter pp2 xs
-    | `String xs -> ()
+let _fun n = 
+  begin
+    match n with
+    | 1 -> ["x1"]
+    | 2 -> ["x1";"x2"]
+    | 3 -> ["x1";"x2";"x3"]
+    | 4 -> ["x1";"x2";"x3";"x4"]
+    | _ -> failwith __LOC__
+  end
+  |> fun vs ->
+  let rec pp = function 
+    | [v] -> v
+    | [v1;v2] -> "("^v1^","^v2^")"
+    | v::vs -> "("^v^","^pp vs^")"
   in
-  pp2 x; List.rev !rs
+  "fun "^pp vs^" -> "
 
-let _ = pp x |> pp2 
+let pp_rule r = (
+  pp_sym (`Nt r.nt) ^ " = " ^ begin
+    r.rhs 
+    |> List.map (fun (es,code) -> 
+        es |> List.map pp_elt |> Tjr_string.concat_strings ~sep:" **> " |> fun es' ->
+        "("^es'^" >> ("^_fun (List.length es)^code^") )")
+    |> Tjr_string.concat_strings ~sep:"|||\n    "
+  end)
 
-(*
+let pp_rules rs = 
+  rs |> List.map pp_rule |> Tjr_string.concat_strings ~sep:" and \n\n" |> fun body ->
+  "let rec \n"^ body
 
-# let _ = pp x |> pp2;;
-- : (string * [> `NT of string | `TM of string * string ] list list) list =
-[("S", [[`NT "E"; `TM ("?", "ws"); `TM ("?", "eof")]]);
- ("E", [[`NT "E"; `NT "E"; `NT "E"]; [`TM ("\"", "1")]; [`TM ("\"", "")]])]
-
-
-# let _ = pp x |> pp2;;
-- : (string *
-     (([ `NT of string * 'b list | `Star of 'a | `String of string ] as 'b)
-      list as 'a)
-     list)
-    list
-=
-[("S",
-  [[`NT ("Sym", [`NT ("NT", [`String "E"])]);
-    `NT ("Sym", [`NT ("TM", [`String "?"; `String "ws"; `String "?"])]);
-    `NT ("Sym", [`NT ("TM", [`String "?"; `String "eof"; `String "?"])])]]);
- ("E",
-  [[`NT ("Sym", [`NT ("NT", [`String "E"])]);
-    `NT ("Sym", [`NT ("NT", [`String "E"])]);
-    `NT ("Sym", [`NT ("NT", [`String "E"])])];
-   [`NT ("Sym", [`NT ("TM", [`String "\""; `String "1"; `String "\""])])];
-   [`NT ("Sym", [`NT ("TM", [`String "\""; `String ""; `String "\""])])]])]
-
-
-
-
-# let _ = pp x;;
-- : [> `NT of string * 'a list | `Star of 'a list | `String of string ] as 'a
-=
-`NT
-  ("Grammar",
-   [`String "\n\n";
-    `NT
-      ("Rules",
-       [`Star
-          [`NT
-             ("Rule",
-              [`NT ("Sym", [`NT ("NT", [`String "S"])]); `String " ";
-               `String "->"; `String " ";
-               `NT
-                 ("Rhs",
-                  [`Star
-                     [`NT
-                        ("Symsact",
-                         [`NT
-                            ("Syms",
-                             [`Star
-                                [`NT ("Sym", [`NT ("NT", [`String "E"])]);
-                                 `NT
-                                   ("Sym",
-                                    [`NT
-                                       ("TM",
-                                        [`String "?"; `String "ws";
-                                         `String "?"])]);
-                                 `NT
-                                   ("Sym",
-                                    [`NT
-                                       ("TM",
-                                        [`String "?"; `String "eof";
-                                         `String "?"])])]]);
-                          `String " ";
-                          `NT
-                            ("Code",
-                             [`String "{{";
-                              `String " print_endline (x1 |> string_of_int) ";
-                              `String "}}"])])]])]);
-           `NT
-             ("Rule",
-              [`NT ("Sym", [`NT ("NT", [`String "E"])]); `String " ";
-               `String "->"; `String " ";
-               `NT
-                 ("Rhs",
-                  [`Star
-                     [`NT
-                        ("Symsact",
-                         [`NT
-                            ("Syms",
-                             [`Star
-                                [`NT ("Sym", [`NT ("NT", [`String "E"])]);
-                                 `NT ("Sym", [`NT ("NT", [`String "E"])]);
-                                 `NT ("Sym", [`NT ("NT", [`String "E"])])]]);
-                          `String " ";
-                          `NT
-                            ("Code",
-                             [`String "{{"; `String " x+y+z "; `String "}}"])]);
-                      `NT
-                        ("Symsact",
-                         [`NT
-                            ("Syms",
-                             [`Star
-                                [`NT
-                                   ("Sym",
-                                    [`NT
-                                       ("TM",
-                                        [`String "\""; `String "1";
-                                         `String "\""])])]]);
-                          `String "  ";
-                          `NT
-                            ("Code",
-                             [`String "{{"; `String " 1 "; `String "}}"])]);
-                      `NT
-                        ("Symsact",
-                         [`NT
-                            ("Syms",
-                             [`Star
-                                [`NT
-                                   ("Sym",
-                                    [`NT
-                                       ("TM",
-                                        [`String "\""; `String "";
-                                         `String "\""])])]]);
-                          `String "   ";
-                          `NT
-                            ("Code",
-                             [`String "{{"; `String " 0 "; `String "}}"])])]])])]]);
-    `String "\n\n"; `String ""])
-# 
-
-*)
-*)
+let _ = pp_rules rs |> print_endline
