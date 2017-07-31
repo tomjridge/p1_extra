@@ -25,7 +25,7 @@ let err s = failwith s
 
 (* FIXME add actions on homogeneous lists to following *)
 let f 
-    ~add_rule ~add_action 
+    ~add_rule ~add_action
     ~star ~plus ~opt ~eps
     ~header 
     (* terminals *)
@@ -42,47 +42,45 @@ let f
   =
   begin
     let __ = whitespace_and_comments in
-    let ( *--> ) = add_rule in
-    let ( ++ ) = add_action in
-    [
-      header(); (* FIXME remove? *)
+    let ( --> ) = add_rule in
+    let ( ** ) = add_action in
+    header(); (* FIXME remove? *)
 
-      _GRAMMAR *--> [__;_RULES; __; eof ]  ++ (fun [_;rs;_;_] -> rs);
-      _RULES *--> [star ~sep:__ _RULE] ++ (fun [rs] -> rs); 
-      _RULE *--> [_SYM; __; a "->"; __; _RHS] ++ (
+    _GRAMMAR --> [__;_RULES; __; eof ]  ** (fun [_;rs;_;_] -> rs);
+    _RULES --> [star ~sep:__ _RULE] ** (fun [rs] -> rs); 
+    _RULE --> [_SYM; __; a "->"; __; _RHS] ** (
         fun [nt;_;_;_;rhs] -> `Rule(nt,rhs));
-      _RHS *--> [plus ~sep:_RHSSEP _SYMSACT] ++ (
+    _RHS --> [plus ~sep:_RHSSEP _SYMSACT] ** (
         fun x -> `Rhs x);
-      _RHSSEP *--> [__;a "|";__] ++ (fun _ -> `Ignore);
+    _RHSSEP --> [__;a "|";__] ** (fun _ -> `Ignore);
 
-      _SYMSACT *--> [_SYMS;__;_CODE] ++ (
+    _SYMSACT --> [_SYMS;__;_CODE] ** (
         function [`List syms;_;`Code code] -> `Symsact (syms,code)
                | _ -> err __LOC__);
-      _SYMS *--> [plus ~sep:__ _VAR_EQ_SYM] ++ (fun [x] -> x);
+    _SYMS --> [plus ~sep:__ _VAR_EQ_SYM] ** (fun [x] -> x);
 
-      _CODE *--> [a "{{";upto_a "}}";a "}}"] ++ (
+    _CODE --> [a "{{";upto_a "}}";a "}}"] ** (
         function [_;`String c;_] -> `Code c | _ -> err __LOC__);
 
-      _VAR_EQ_SYM *--> [_VAR_EQ; _SYM] ++ (
+    _VAR_EQ_SYM --> [_VAR_EQ; _SYM] ** (
         function | [`Some_var v;x] -> `Var_eq(Some v,x)
                  | [`None_var;x] -> `Var_eq(None,x)
                  | _ -> err __LOC__);
-      _VAR_EQ *--> [re "[a-z]+";a "="] ++ (
+    _VAR_EQ --> [re "[a-z]+";a "="] ** (
         function | [`String v;_] -> `Some_var v | _ -> err __LOC__);
-      _VAR_EQ *--> [eps] ++ (fun _ -> `None_var);
+    _VAR_EQ --> [eps] ** (fun _ -> `None_var);
 
-      _SYM *--> [_NT] ++ (fun [x] -> x);
-      _SYM *--> [_TM] ++ (fun [x] -> x);
+    _SYM --> [_NT] ** (fun [x] -> x);
+    _SYM --> [_TM] ** (fun [x] -> x);
 
-      _TM *--> [a sq;upto_a sq;a sq] ++ (
+    _TM --> [a sq;upto_a sq;a sq] ** (
         function [_;`String s;_] -> `Sq s | _ -> err __LOC__);
-      _TM *--> [a dq;upto_a dq;a dq] ++ (
+    _TM --> [a dq;upto_a dq;a dq] ** (
         function [_;`String s;_] -> `Dq s | _ -> err __LOC__);
-      _TM *--> [a "?";azAZs;a "?"] ++ (
+    _TM --> [a "?";azAZs;a "?"] ** (
         function [_;`String s;_] -> `Qu s | _ -> err __LOC__);
-      _NT *--> [_AZs] ++ (
+    _NT --> [_AZs] ** (
         function [`String x] -> `Nt x | _ -> err __LOC__); 
-    ]
   end
 
 ;;
@@ -120,19 +118,19 @@ type elt =
   | E_star of elt * elt | E_plus of elt * elt 
   | E_NT of nt' | E_TM of tm' [@@deriving yojson]
 
-type rule = R of (elt * elt list) [@@deriving yojson]
+(* type rule = R of (elt * elt list) [@@deriving yojson] *)
 
 
 (* grammar_to_parser, with actions ---------------------------------- *)
 
 let f'' () =
   let rs = ref [] in
-  let add_rule nt rhs = 
-    R(nt,rhs) |> fun r -> 
-    r |> rule_to_yojson |> Yojson.Safe.pretty_to_string |> print_endline;
-    (nt,rhs)
+  let add_rule nt (rhs,act) = 
+(*    R(nt,rhs) |> fun r -> 
+    r |> rule_to_yojson |> Yojson.Safe.pretty_to_string |> print_endline;*)
+    rs:=(nt,rhs,act)::!rs
   in
-  let add_action (nt,rhs) a = rs:=(nt,rhs,a)::!rs in
+  let add_action rhs a = (rhs,a) in
   let star ~sep nt = E_star(sep,nt) in
   let plus ~sep nt = E_plus(sep,nt) in
   let opt = P1_combinators.opt in
@@ -223,3 +221,49 @@ let grammar_to_parser =
 
 
 let _ = grammar_to_parser
+
+
+
+(* pretty-print ----------------------------------------------------- *)
+
+
+(* FIXME move elsewhere *)
+let rec pp_rule = function
+  | `Rule(`Nt nt,`Rhs[`List sas]) -> (nt,List.map pp_sas sas)
+  | _ -> err __LOC__
+and pp_sas = function
+  | `Symsact (syms,code) -> (List.map pp_sym syms,code)
+  | _ -> err __LOC__
+and pp_sym' = function
+    | `Nt s -> `Nt s
+    | `Dq s -> `Dq s
+    | `Qu s -> `Qu s
+    | `Sq s -> `Sq s
+    | _ -> err __LOC__
+and pp_sym = function
+  | `Var_eq (None,x) -> (`Elt(None,x |> pp_sym'))
+  | `Var_eq (Some v,x) -> (`Elt(Some v,x |> pp_sym'))
+  | _ -> err __LOC__
+and pp_rules = function
+  | `List rs -> List.map pp_rule rs
+  | _ -> (err __LOC__)
+
+
+(* improve typing --------------------------------------------------- *)
+
+module Improved_typing = struct
+  type sym = [ `Nt of string | `Qu of string | `Sq of string | `Dq of string ]
+
+  type elt = [ `Elt of (string option * sym) ]
+
+  type rule = {nt:string; rhs: (elt list * string) list }
+end
+
+open Improved_typing
+
+let parse_grammar_file s = 
+  s
+  |> P1_core.run_parser (grammar_to_parser "Grammar") 
+  |> (fun [x] -> x)
+  |> pp_rules
+  |> List.map (fun (nt,rhs) -> {nt;rhs})

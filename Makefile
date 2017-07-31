@@ -8,7 +8,9 @@ all: FORCE
 	$$mk_cma -g -a -o $$libname.cma $$cmos
 	$$mk_cmxa -g -a -o $$libname.cmxa $$cmxs
 	$(MAKE) install
-	$$ocamlopt -linkpkg -package $$libname -impl test.ml_ 
+
+bin:
+	$$ocamlopt -linkpkg -package $$libname test.ml
 
 install:
 	-ocamlfind remove $$package_name
@@ -16,6 +18,6 @@ install:
 	ocamlfind install $$package_name META *.cmi *.o *.a *.cma *.cmxa *.cmo *.cmx 
 
 clean:
-	rm -f *.{cmi,cmo,cmx,o}
+	rm -f *.{cmi,cmo,cmx,o,a,cmxa,cma}
 
 FORCE:

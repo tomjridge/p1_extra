@@ -1,10 +1,3 @@
-(* -*- mode: tuareg -*- *)
-
-(* interactive top-level testing having installed ml files *)
-
-#require "p1_core";;
-#require "p1_extra";;
-
 
 (* examples --------------------------------------------------------- *)
 
@@ -66,9 +59,10 @@ let rs = parse_grammar_file example
 (* code gen --------------------------------------------------------- *)
 
 let cg_sym = String.(function
-  | `Nt s -> "_"^s  (* prefix with an underscore since we need nts to be func names *)
+  | `Nt s -> "_"^s  
+  (* NOTE prefix with an underscore since we need nts to be func names *)
   | `Qu s -> s
-  | `Sq s -> "a "^dq^(escaped s)^dq  (* FIXME protect *)
+  | `Sq s -> "a "^dq^(escaped s)^dq 
   | `Dq s -> "a "^dq^(escaped s)^dq
   )
 
@@ -100,9 +94,9 @@ let cg_rule r =
   let open Improved_typing in
   r.rhs 
   |> List.map f 
-  |> Tjr_string.concat_strings ~sep:"|||\n    "
+  |> Tjr_string.concat_strings ~sep:"|||\n  "
   |> fun rhs -> 
-  "check "^dq^r.nt^dq^" (\n    "^rhs^")"
+  "check "^dq^r.nt^dq^" (\n  "^rhs^")"
   |> fun rhs -> 
   cg_sym (`Nt r.nt) ^ " i = "^rhs^" i"    
 
@@ -114,11 +108,12 @@ let cg_rules rs =
   "let rec \n"^ body
 
 
-(* testing ---------------------------------------------------------- *)
+(* test code gen ---------------------------------------------------- *)
 
 let example = {|
 
-S -> e=E ?ws? ?eof? {{ print_endline (x1 |> string_of_int) }}
+S -> e=E ?ws? ?eof? {{ 
+  print_endline (x1 |> string_of_int) }}
 
 E -> x=E y=E z=E {{ x1+x2+x3 }}
 | "1"  {{ 1 }}
@@ -128,26 +123,31 @@ E -> x=E y=E z=E {{ x1+x2+x3 }}
 
 let rs = parse_grammar_file example
 
-let _ = cg_rules rs |> print_endline
+(* generated code and output to file *)
+
+let fn = "generated_example.ml"
+
+let _ = 
+  cg_rules rs 
+  |> fun body ->
+  {| 
+(* NOTE this is a generated file; do not edit. See test.ml for source. *)
 
 open P1_core
 
-let f ~ws ~eof ~a = 
-let rec 
-_S i = check "S" (
-    ((_E **> ws **> eof) >> (fun (x1,(x2,x3)) ->  print_endline (x1 |> string_of_int) ) )) i and 
+let mk_parser ~ws ~eof ~a = 
+$body
+in _S
 
-_E i = check "E" (
-    ((_E **> _E **> _E) >> (fun (x1,(x2,x3)) ->  x1+x2+x3 ) )|||
-    ((a "1") >> (fun x1 ->  1 ) )|||
-    ((a "") >> (fun x1 ->  0 ) )) i
+  |} 
+  |> Tjr_string.replace_first ~sub:"$body" ~rep:body
+  |> Tjr_file.write_string_to_file ~fn
 
-in
-_S
+let _ = print_endline @@ "Wrote generated parser to file "^fn 
 
 open P1_terminals
 
-let _S = P1_terminals.(f ~ws ~eof ~a)
+let _S = P1_terminals.(Generated_example.mk_parser ~ws ~eof ~a)
 
 (* need to check of course *)
 let _ = "111 " |> run_parser _S
