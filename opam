@@ -1,0 +1,21 @@
+opam-version: "1.2"
+name: "p1_extra"
+
+version: "opam??"
+
+maintainer: "Tom Ridge <tom.j.ridge@googlemail.com>"
+authors: "Tom Ridge <tom.j.ridge@googlemail.com>"
+homepage: "https://github.com/tomjridge/p1_extra"
+bug-reports: "https://github.com/tomjridge/p1_extra/issues"
+dev-repo: "https://github.com/tomjridge/p1_extra.git"
+
+build: [
+  [make "all"]
+]
+install: [make "install"]
+remove: ["ocamlfind" "remove" "p1_extra"]
+
+depends: [
+  "p1_core"
+]
+
