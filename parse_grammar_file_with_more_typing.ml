@@ -130,7 +130,10 @@ E -> x=E y=E z=E {{ x+y+z }}
   (* FIXME can we improve the syntax of the above? 
 
      eg rhs2 (X,Y) (fun (x,y) -> ... ) ie miss out the ** operator as
-     rhs2 above
+     rhs2 above; or perhaps have (X,Y) ** (...) with the number of *s
+     being the indicator of which rhsn version to use
+
+
 
 
      FIXME what if we want to define a grammar without actions... can
