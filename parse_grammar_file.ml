@@ -89,7 +89,44 @@ E -> x=E y=E z=E {{ x+y+z }}
   ;;
 
 
-  let _ = f
+  let _ :
+add_rule:('a -> 'b -> 'c) ->add_action:('a list ->
+            ((([> `Code of 'f
+                | `Dq of 'f
+                | `Ignore
+                | `List of 'g
+                | `None_var
+                | `Nt of 'f
+                | `Qu of 'f
+                | `Rhs of 'd
+                | `Rule of 'e * 'e
+                | `Some_var of 'f
+                | `Sq of 'f
+                | `String of 'f
+                | `Symsact of 'g * 'f
+                | `Var_eq of 'f option * 'e ]
+               as 'e)
+              list as 'd) ->
+             'e) ->
+            'b) ->
+star:(sep:'a -> 'a -> 'a) ->
+plus:(sep:'a -> 'a -> 'a) ->
+opt:'h ->eps:'a ->
+header:(unit -> 'i) ->a:(string -> 'a) ->
+upto_a:(string -> 'a) ->
+whitespace_and_comments:'a ->
+_AZs:'a ->azAZs:'a ->
+re:(string -> 'a) ->eof:'a ->
+_GRAMMAR:'a ->
+_RULES:'a ->
+_RULE:'a ->
+_RHS:'a ->
+_SYMSACT:'a ->
+_RHSSEP:'a ->
+_CODE:'a ->
+_SYMS:'a -> _VAR_EQ_SYM:'a -> _VAR_EQ:'a -> _SYM:'a -> _NT:'a -> _TM:'a -> 'c
+
+    = f
 
   (* now we need to convert this into a parser; nonterminals can be
      identified using strings; then we recursively map the generator
