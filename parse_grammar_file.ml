@@ -308,3 +308,5 @@ let parse_grammar_file s = Internal_.(
   |> (fun [x] -> x)
   |> pp_rules
   |> List.map (fun (nt,rhs) -> {nt;rhs}))
+
+let _ = parse_grammar_file
