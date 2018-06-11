@@ -53,8 +53,9 @@ struct
 
   open X
 
+
   let f
-    ~ops
+      ~ops
       ~eps
       ~header 
       (* terminals *)
@@ -103,7 +104,7 @@ struct
         (function | (`Some_var v,x) -> `Var_eq(Some v,x)
                   | (`None_var,x) -> `Var_eq(None,x));
       _VAR_EQ --> rhs2
-        (re "(a-z)+",a "=") 
+        (re "[a-z]+",a "=") 
         (fun (v,_) -> `Some_var v );
 
       _VAR_EQ --> rhs1 eps  (fun _ -> `None_var);
@@ -122,7 +123,7 @@ struct
 
       _NT --> rhs1 _AZs  (fun x -> x);
 
-      _GRAMMAR
+      _GRAMMAR  (* NOTE we return the start nt at the point where we know the max info about its type *)
     end
 
 
@@ -146,9 +147,11 @@ type nt' =
   | Syms | Var_eq_sym | Var_eq 
   | Sym | NT | TM  [@@deriving yojson]
 
+(*
 let nt_to_string nt' = 
   nt' |> nt'_to_yojson 
   |> function `List (`String s::_) -> s | _ -> (failwith __LOC__)
+*)
 
 type elt = 
   | E_star of elt * elt | E_plus of elt * elt 
@@ -250,31 +253,33 @@ let f'' () =
   let _SYM = E_NT Sym in
   let _NT = E_NT NT in
   let _TM = E_NT TM in  (* TM is a nonterminal - it expands to 'x' etc *)
-  ignore (Z.f 
-            ~ops
-            ~eps:(a "")
-            ~header 
-            (* terminals *)
-            ~a
-            ~upto_a  
-            ~whitespace_and_comments  (* whitespace and comments *)
-            ~_AZs ~azAZs ~re
-            ~eof 
-            (* nonterminals *)
-            ~_GRAMMAR ~_RULES ~_RULE 
-            ~_RHS ~_SYMSACT ~_CODE ~_RHSSEP
-            ~_SYMS ~_VAR_EQ_SYM ~_VAR_EQ  
-            ~_SYM ~_NT ~_TM);
-  List.rev !rs
+  let _ = _GRAMMAR in
+  let _GRAMMAR = (Z.f 
+     ~ops
+     ~eps:(a "")
+     ~header 
+     (* terminals *)
+     ~a
+     ~upto_a  
+     ~whitespace_and_comments  (* whitespace and comments *)
+     ~_AZs ~azAZs ~re
+     ~eof 
+     (* nonterminals *)
+     ~_GRAMMAR ~_RULES ~_RULE 
+     ~_RHS ~_SYMSACT ~_CODE ~_RHSSEP
+     ~_SYMS ~_VAR_EQ_SYM ~_VAR_EQ  
+     ~_SYM ~_NT ~_TM)
+  in
+  _GRAMMAR,List.rev !rs
 
 let _ = f''
 
 (* we can call f'' and get hold of the rules *)
 let rs = f'' ()
 
-(*
 (* we have to name the type of the result *)
-type res = [`List of res list | `String of string ] 
+(* type res' = [`List of res list | `String of string ] *)
+
 
 (* NOTE the following is more-or-less independent of the nature of the
    terminals or the nonterminals *)
@@ -282,42 +287,17 @@ let grammar_to_parser' ~(rules:rule list) =
   let open P1_core in
   let open P1_combinators in
   let open P1_terminals in
-  let rec rhs_to_parser: res rhs -> res parser_ = 
-    (* FIXME obviously the following is rather scary *)
-    function
-    | Rhs1 (s,act) -> (elt_to_parser s >> act)
-    | Rhs2 ((s1,s2),act) -> 
-      (elt_to_parser s1) **> (elt_to_parser s2) >> act
-    | Rhs3 ((s1,s2,s3),act) -> (
-        elt_to_parser s1 **>
-        elt_to_parser s2 **> 
-        elt_to_parser s3)
-      >> (fun (x,(y,z)) -> act (x,y,z))
-    | Rhs4 ((s1,s2,s3,s4),act) -> (
-        elt_to_parser s1 **> 
-        elt_to_parser s2 **> 
-        elt_to_parser s3 **>
-        elt_to_parser s4)
-      >> (fun (x,(y,(z,w))) -> act (x,y,z,w))
-    | Rhs5 ((s1,s2,s3,s4,s5),act) -> (
-        elt_to_parser s1 **> 
-        elt_to_parser s2 **> 
-        elt_to_parser s3 **>
-        elt_to_parser s4 **>
-        elt_to_parser s5)
-      >> (fun (x,(y,(z,(w,u)))) -> act (x,y,z,w,u))
-  and tm_to_parser' = function
+  let rec tm_to_parser' = function
     | A s -> a s
     | Upto_a s -> upto_a s
-    | Ws -> ws
+    | Ws -> p1_log ~msg:"ws" ws
     | AZs -> _AZs
     | AZazs -> _AZazs
     | Re s -> re (Str.regexp s)
     | Eof -> eof >> fun _ -> ""
   and tm_to_parser x = tm_to_parser' x >> fun x -> `String x
   (*and elt_to_parser: 'a. 'a sym -> 'a parser_ = fun x -> failwith ""*)
-
-  and elt_to_parser : res sym -> res parser_ = function
+  and elt_to_parser = function
     | E_star(sep,elt) -> 
       star ~sep:(elt_to_parser sep) (elt_to_parser elt) >> fun xs -> `List xs
     | E_plus(sep,elt) -> 
@@ -326,25 +306,67 @@ let grammar_to_parser' ~(rules:rule list) =
     | E_NT nt -> 
       let alt_list xs = alt_list xs >> fun xs -> xs in 
       rules |> List.filter (fun r -> r.nt=nt) |> fun rs ->
+      Printf.printf "Got %d rules" (List.length rs);
       alt_list (
         rs 
         |> List.map (
         fun r -> 
           let rhs = r.rhs in
-          let rhs : res rhs = Obj.magic rhs in
+          let rhs = Obj.magic rhs in
           rhs_to_parser rhs))
-      
+  and rhs_to_parser: 'a. 'a rhs -> 'a parser_ = 
+    (* FIXME obviously the following is rather scary *)
+    function
+    | Rhs1 (s,act) -> (elt_to_parser s >> fun x -> act (Obj.magic x))
+    | Rhs2 ((s1,s2),act) -> 
+      (elt_to_parser s1) **> (elt_to_parser s2) >> fun x -> act (Obj.magic x)
+    | Rhs3 ((s1,s2,s3),act) -> (
+        elt_to_parser s1 **>
+        elt_to_parser s2 **> 
+        elt_to_parser s3)
+      >> (fun (x,(y,z)) -> act (Obj.magic (x,y,z)))
+    | Rhs4 ((s1,s2,s3,s4),act) -> (
+        elt_to_parser s1 **> 
+        elt_to_parser s2 **> 
+        elt_to_parser s3 **>
+        elt_to_parser s4)
+      >> (fun (x,(y,(z,w))) -> act (Obj.magic (x,y,z,w)))
+    | Rhs5 ((s1,s2,s3,s4,s5),act) -> (
+        elt_to_parser s1 **> 
+        elt_to_parser s2 **> 
+        elt_to_parser s3 **>
+        elt_to_parser s4 **>
+        elt_to_parser s5)
+      >> (fun (x,(y,(z,(w,u)))) -> act (Obj.magic (x,y,z,w,u)))
   in
   elt_to_parser
 
+let _ = grammar_to_parser'
+
+
+let _GRAMMAR,rules = (f'' ())
+
+let rules_without_actions = 
+  rules |> List.map (fun r ->
+      (r.nt,r.rhs |> Obj.magic |> function
+         | Rhs1 (x,_) -> [x]
+         | Rhs2 ((x,y),_) -> [x;y]
+         | Rhs3 ((x,y,z),_) -> [x;y;z]
+         | Rhs4 ((x,y,z,w),_) -> [x;y;z;w]
+         | Rhs5 ((x,y,z,w,u),_) -> [x;y;z;w;u]))
+
 let grammar_to_parser = 
+  P1_combinators.p1_log ~msg:__LOC__ @@ 
   grammar_to_parser'
-    ~rules:(f'' ())
-    (E_NT Grammar)
+    ~rules
+    (* (!Z.grammar_ref |> fun (Some s) -> s) *)
+    (* (E_NT Grammar) *)
+    _GRAMMAR
 
 
-let _ = grammar_to_parser
+(* we now have a parser that can parse the example text (itself a
+   grammar file) such as above *)
 
-
-
-*)
+let _ = grammar_to_parser  (* note that this parses the example and
+                              returns List of rules; so the types are
+                              correct *)

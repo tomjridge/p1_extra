@@ -95,3 +95,8 @@ let rec alt_list =
   | [x] -> x
   | x::xs -> x ||| alt_list xs
 
+
+let p1_log ~msg p i = 
+  let open Tjr_substring in
+  Printf.printf "%s: called on (%d,%d)" msg i.ss.i_ i.ss.j_;
+  p i
