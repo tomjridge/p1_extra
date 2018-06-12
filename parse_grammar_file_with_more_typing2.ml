@@ -22,9 +22,7 @@ E -> x=E y=E z=E {{ x+y+z }}
 |}
 
 
-
-
-module Internal_(X:sig 
+module type MAKE_REQUIRES = sig
 
     type 'a nt
 
@@ -47,14 +45,16 @@ module Internal_(X:sig
       star: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
       plus: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
 
-      nt2elt: 'a. 'a nt -> 'a elt
+      ant2aelt: 'a. 'a nt -> 'a elt
     }
     (* val eps: unit sym *)
 
-  end)
-= 
-struct
+end
 
+
+
+module Make(X:MAKE_REQUIRES) = struct
+  
   open X
 
 
@@ -168,7 +168,7 @@ _VAR_EQ_SYM:'l X.nt ->
 _VAR_EQ:[ `None_var | `Some_var of 'g ] X.nt ->
 _SYM:'m X.nt -> _NT:'e X.nt -> _TM:'n X.nt -> 'i list X.nt*)
 
-end (* Internal_ *)
+end (* Make *)
 
 
 
@@ -196,9 +196,12 @@ let nt_to_string nt' =
 
 type sym = S_NT of nt' | S_TM of tm'  [@@deriving yojson]
 
+module Elt = struct
 type elt = 
   | E_star of elt * elt | E_plus of elt * elt 
   | E_sym of sym [@@deriving yojson]
+end
+open Elt
 
 (* type rule = R of (elt * elt list) [@@deriving yojson] *)
 
@@ -207,11 +210,29 @@ let nt2elt nt = E_sym (S_NT nt)
 let tm2elt tm = E_sym (S_TM tm)
 
 
-module Y = struct
+module type MAKE_REQUIRES' = sig
+  include MAKE_REQUIRES
+  val nt2nt' : 'a nt -> nt'
+  val nt'2nt : nt' -> 'a nt
+  val aelt2elt: 'a elt -> Elt.elt
+  val elt2aelt: Elt.elt -> 'a elt
+  val ant2aelt : 'a nt -> 'a elt
+
+end
+
+module Y : MAKE_REQUIRES' = struct
 
   type 'a nt = nt'
 
-  type nonrec 'a elt = elt
+  let nt2nt' nt = nt
+  let nt'2nt nt = nt
+
+  type 'a elt = Elt.elt
+
+  let aelt2elt = fun e -> e
+  let elt2aelt = fun e -> e
+
+  let ant2aelt  = fun nt -> E_sym (S_NT nt)
 
   type _a  (* a dummy type var *)
   type _b 
@@ -243,13 +264,13 @@ module Y = struct
       star: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
       plus: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
 
-      nt2elt: 'a. 'a nt -> 'a elt
+      ant2aelt: 'a. 'a nt -> 'a elt
     }
 end
 
 open Y
 
-module Z = Internal_(Y)
+module Z = Make(Y)
 
 let _ = Z.f
 
@@ -269,12 +290,19 @@ let f'' () =
   let add_rule (type a) (nt:a nt) (rhs:a rhs) = 
     (*    R(nt,rhs) |> fun r -> 
           r |> rule_to_yojson |> Yojson.Safe.pretty_to_string |> print_endline;*)
-    rs:=(coerce_rule nt rhs)::!rs  (* NOTE Obj.magic *)
+    rs:=(coerce_rule (nt2nt' nt) rhs)::!rs  (* NOTE Obj.magic *)
   in
   (* let add_action rhs a = (rhs,a) in *)
-  let star ~sep nt = E_star(sep,nt) in
-  let plus ~sep nt = E_plus(sep,nt) in
-  let ops = { add_rule=add_rule; star; plus; nt2elt } in
+  let star ~sep elt = 
+    let sep = aelt2elt sep in
+    let elt = aelt2elt elt in
+    elt2aelt (E_star(sep,elt)) in
+  let plus ~sep elt = 
+    let sep = aelt2elt sep in
+    let elt = aelt2elt elt in
+    elt2aelt (E_plus(sep,elt))
+  in
+  let ops = { add_rule=add_rule; star; plus; ant2aelt } in
   let header () = () in
   let a s = tm2elt (A s) in
   let upto_a s = tm2elt (Upto_a s) in
@@ -283,29 +311,31 @@ let f'' () =
   let azAZs = tm2elt AZazs in
   let re s = tm2elt (Re s) in
   let eof = tm2elt Eof in
-  let _GRAMMAR = Grammar in
-  let _RULES = Rules in
-  let _RULE = Rule in
-  let _RHS = Rhs in
-  let _SYMSACT = Symsact in
-  let _CODE = Code in
-  let _RHSSEP = Rhssep in
-  let _SYMS = Syms in
-  let _VAR_EQ_SYM = Var_eq_sym in
-  let _VAR_EQ = Var_eq in
-  let _SYM = Sym in
-  let _NT = NT in
-  let _TM = TM in  (* TM is a nonterminal - it expands to 'x' etc *)
+  let _GRAMMAR = nt'2nt Grammar in
+  let _RULES = nt'2nt Rules in
+  let _RULE = nt'2nt Rule in
+  let _RHS = nt'2nt Rhs in
+  let _SYMSACT = nt'2nt Symsact in
+  let _CODE = nt'2nt Code in
+  let _RHSSEP = nt'2nt Rhssep in
+  let _SYMS = nt'2nt Syms in
+  let _VAR_EQ_SYM = nt'2nt Var_eq_sym in
+  let _VAR_EQ = nt'2nt Var_eq in
+  let _SYM = nt'2nt Sym in
+  let _NT = nt'2nt NT in
+  let _TM = nt'2nt TM in  (* TM is a nonterminal - it expands to 'x' etc *)
   let _ = _GRAMMAR in
   let _GRAMMAR = (Z.f 
      ~ops
-     ~eps:(a "")
+     ~eps:(elt2aelt (a ""))
      (* terminals *)
-     ~a
-     ~upto_a  
-     ~whitespace_and_comments  (* whitespace and comments *)
-     ~_AZs ~azAZs ~re
-     ~eof 
+     ~a:(fun s -> elt2aelt (a s))
+     ~upto_a:(fun s -> elt2aelt @@ upto_a s)
+     ~whitespace_and_comments:(elt2aelt whitespace_and_comments)
+     ~_AZs:(elt2aelt _AZs)
+     ~azAZs:(elt2aelt azAZs)
+     ~re:(fun s -> elt2aelt @@ re s)
+     ~eof:(elt2aelt eof)
      (* nonterminals *)
      ~_GRAMMAR ~_RULES ~_RULE 
      ~_RHS ~_SYMSACT ~_CODE ~_RHSSEP
@@ -319,7 +349,19 @@ let _ = f''
 (* we can call f'' and get hold of the rules *)
 let rs = f'' ()
 
-(* NOTE the following is more-or-less independent of the nature of the
+(* FIXME not clear that it is worth continuing with this - we are
+   trying to hide the equivalence between 'a nt and nt' (and 'a elt and
+   elt) from the typechecker but now we seem to have to expose Rhs, which
+   depende on elt'; alternatively we could expose a "fold over rhs"
+   function in Y...
+
+   the issue is really that we are trying to work with untyped and
+   typed representations simultaneously; not clear this is necessary
+   anyway, since this is specifying a grammar at level 2 (ie a grammar
+   used to parse a grammar at level 1, which is then used to parse
+   input strings at level 1
+
+   (* NOTE the following is more-or-less independent of the nature of the
    terminals or the nonterminals *)
 let grammar_to_parser' ~(rules:rule list) = 
   let open P1_core in
@@ -346,7 +388,7 @@ let grammar_to_parser' ~(rules:rule list) =
     | S_NT nt -> nt_to_parser nt
   and nt_to_parser: 'a. 'a nt -> 'a parser_ = fun nt ->
       let alt_list xs = alt_list xs >> fun xs -> xs in 
-      rules |> List.filter (fun r -> r.nt=nt) |> fun rs ->
+      rules |> List.filter (fun r -> r.nt=nt2nt' nt) |> fun rs ->
       Printf.printf "Got %d rules" (List.length rs);
       alt_list (
         rs 
@@ -411,4 +453,9 @@ let grammar_to_parser =
 let _ = grammar_to_parser
 
 (* type of grammar_to_parser is given as 'a parser, but this is not
-   correct given the type of _GRAMMAR *)
+   correct given the type of _GRAMMAR 
+
+   the issue seems to be that 'a nt = nt' = 'b nt, so any concrete 'a
+   nt can be determined by the type checker to be equal to 'a nt
+*)
+*)
