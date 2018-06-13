@@ -446,3 +446,47 @@ let grammar_to_parser i =
 let _ = grammar_to_parser
 
 (* type of grammar_to_parser is now correct! *)
+
+
+(* a more typical example ------------------------------------------- *)
+
+module Make'(X:MAKE_REQUIRES) = struct
+  
+  open X
+
+  let f
+      ~ops
+      (* terminals *)
+      ~eps
+      ~eof
+      ~a
+      (* nonterminals *)
+      ~_S
+      ~_E
+    =
+    begin
+      let nt x = ops.ant2aelt x in
+      let a x = tm (a x) in
+      let ( --> ) x y = ops.add_rule x y in
+
+      (* S -> E; E -> E E E | "1" | eps *)
+
+      _S -->rhs2 
+        (nt _E, eof)  (fun (x,_) -> x);
+
+      _E -->rhs3
+        (nt _E,nt _E, nt _E)  (fun (x,y,z) -> x+y+z);  
+
+      _E -->rhs1 
+        (a "1")  (fun _ -> 1);
+
+      _E -->rhs1 
+        eps  (fun _ -> 0);
+
+      _S  (* int nt *)
+    end
+
+
+  let _ = f
+end 
+
