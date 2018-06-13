@@ -22,6 +22,7 @@ E -> x=E y=E z=E {{ x+y+z }}
 |}
 
 
+
 module type MAKE_REQUIRES = sig
 
     type 'a nt
@@ -75,7 +76,7 @@ module Make(X:MAKE_REQUIRES) = struct
       ~_SYM ~_NT ~_TM
     =
     begin
-      let nt x = ops.nt2elt x in
+      let nt x = ops.ant2aelt x in
       let __ = whitespace_and_comments in
       let ( --> ) x y = ops.add_rule x y in
 
@@ -113,7 +114,7 @@ module Make(X:MAKE_REQUIRES) = struct
 
       _VAR_EQ --> rhs1 eps  (fun _ -> `None_var);
 
-      _SYM --> rhs1 (nt _NT)  (fun x -> `Nt x);
+      _SYM --> rhs1 (nt _NT)  (fun x -> (`Nt x));
       _SYM --> rhs1 (nt _TM)  (fun x -> `Tm x);
 
       _TM --> rhs3 
@@ -217,22 +218,25 @@ module type MAKE_REQUIRES' = sig
   val aelt2elt: 'a elt -> Elt.elt
   val elt2aelt: Elt.elt -> 'a elt
   val ant2aelt : 'a nt -> 'a elt
-
 end
 
-module Y : MAKE_REQUIRES' = struct
+module Y = struct
 
-  type 'a nt = nt'
+  (* NOTE we can't have 'a nt = nt' because the typechecker then
+     identifies 'a nt and 'b nt, which is not what we want *)
+  type 'a nt  (* = nt' *)
 
-  let nt2nt' nt = nt
-  let nt'2nt nt = nt
+  let nt2nt' : 'a nt -> nt' = fun x -> Obj.magic x
+  let nt'2nt : nt' -> 'a nt = fun x -> Obj.magic x
 
+  (* surprisingly this is OK and doesn't mess up the
+     typechecking... perhaps because we are only interested in 'a nt? *)
   type 'a elt = Elt.elt
 
   let aelt2elt = fun e -> e
   let elt2aelt = fun e -> e
 
-  let ant2aelt  = fun nt -> E_sym (S_NT nt)
+  let ant2aelt : 'a nt -> 'a elt  = fun nt -> E_sym (S_NT (nt2nt' nt))
 
   type _a  (* a dummy type var *)
   type _b 
@@ -268,6 +272,9 @@ module Y : MAKE_REQUIRES' = struct
     }
 end
 
+
+module Y' : MAKE_REQUIRES' = Y
+
 open Y
 
 module Z = Make(Y)
@@ -284,6 +291,8 @@ type rule = { nt: nt'; rhs: rhs' }
 
 let coerce_rule nt rhs = 
   { nt; rhs=(Obj.magic rhs) }
+
+let elt2stringelt : Elt.elt -> string elt = fun x -> x
 
 let f'' () =
   let rs = ref [] in
@@ -303,7 +312,6 @@ let f'' () =
     elt2aelt (E_plus(sep,elt))
   in
   let ops = { add_rule=add_rule; star; plus; ant2aelt } in
-  let header () = () in
   let a s = tm2elt (A s) in
   let upto_a s = tm2elt (Upto_a s) in
   let whitespace_and_comments = tm2elt Ws in
@@ -327,15 +335,15 @@ let f'' () =
   let _ = _GRAMMAR in
   let _GRAMMAR = (Z.f 
      ~ops
-     ~eps:(elt2aelt (a ""))
+     ~eps:(elt2stringelt (a ""))
      (* terminals *)
-     ~a:(fun s -> elt2aelt (a s))
-     ~upto_a:(fun s -> elt2aelt @@ upto_a s)
-     ~whitespace_and_comments:(elt2aelt whitespace_and_comments)
-     ~_AZs:(elt2aelt _AZs)
-     ~azAZs:(elt2aelt azAZs)
-     ~re:(fun s -> elt2aelt @@ re s)
-     ~eof:(elt2aelt eof)
+     ~a:(fun s -> elt2stringelt (a s))
+     ~upto_a:(fun s -> elt2stringelt @@ upto_a s)
+     ~whitespace_and_comments:(elt2stringelt whitespace_and_comments)
+     ~_AZs:(elt2stringelt _AZs)
+     ~azAZs:(elt2stringelt azAZs)
+     ~re:(fun s -> elt2stringelt @@ re s)
+     ~eof:(elt2stringelt eof)
      (* nonterminals *)
      ~_GRAMMAR ~_RULES ~_RULE 
      ~_RHS ~_SYMSACT ~_CODE ~_RHSSEP
@@ -344,26 +352,17 @@ let f'' () =
   in
   _GRAMMAR,List.rev !rs
 
+(* FIXME the type of the following seems wrong - we know that _AZs is
+   a string elt, so we expect that _NT is also a string nt if the
+   types are unified *)
 let _ = f''
 
 (* we can call f'' and get hold of the rules *)
-let rs = f'' ()
-
-(* FIXME not clear that it is worth continuing with this - we are
-   trying to hide the equivalence between 'a nt and nt' (and 'a elt and
-   elt) from the typechecker but now we seem to have to expose Rhs, which
-   depende on elt'; alternatively we could expose a "fold over rhs"
-   function in Y...
-
-   the issue is really that we are trying to work with untyped and
-   typed representations simultaneously; not clear this is necessary
-   anyway, since this is specifying a grammar at level 2 (ie a grammar
-   used to parse a grammar at level 1, which is then used to parse
-   input strings at level 1
+(* let rs = f'' () *)
 
    (* NOTE the following is more-or-less independent of the nature of the
    terminals or the nonterminals *)
-let grammar_to_parser' ~(rules:rule list) = 
+let grammar_to_parser' ~(rules:rule list) i = 
   let open P1_core in
   let open P1_combinators in
   let open P1_terminals in
@@ -385,7 +384,7 @@ let grammar_to_parser' ~(rules:rule list) =
     | E_sym sym -> sym_to_parser sym
   and sym_to_parser = function
     | S_TM tm -> tm_to_parser tm
-    | S_NT nt -> nt_to_parser nt
+    | S_NT nt -> nt_to_parser (nt'2nt nt)
   and nt_to_parser: 'a. 'a nt -> 'a parser_ = fun nt ->
       let alt_list xs = alt_list xs >> fun xs -> xs in 
       rules |> List.filter (fun r -> r.nt=nt2nt' nt) |> fun rs ->
@@ -422,13 +421,12 @@ let grammar_to_parser' ~(rules:rule list) =
         elt_to_parser s5)
       >> (fun (x,(y,(z,(w,u)))) -> act (Obj.magic (x,y,z,w,u)))
   in
-  nt_to_parser
+  nt_to_parser i
 
 let _ = grammar_to_parser'
 
 
-let _GRAMMAR,rules = (f'' ())
-
+(*
 let rules_without_actions = 
   rules |> List.map (fun r ->
       (r.nt,r.rhs |> Obj.magic |> function
@@ -437,14 +435,16 @@ let rules_without_actions =
          | Rhs3 ((x,y,z),_) -> [x;y;z]
          | Rhs4 ((x,y,z,w),_) -> [x;y;z;w]
          | Rhs5 ((x,y,z,w,u),_) -> [x;y;z;w;u]))
+*)
 
-
-let grammar_to_parser = 
+let grammar_to_parser i = 
+  let _GRAMMAR,rules = (f'' ()) in
   grammar_to_parser'
     ~rules
     (* (!Z.grammar_ref |> fun (Some s) -> s) *)
     (* (e_nt Grammar) *)
     _GRAMMAR
+    i
 
 
 (* we now have a parser that can parse the example text (itself a
@@ -452,10 +452,29 @@ let grammar_to_parser =
 
 let _ = grammar_to_parser
 
-(* type of grammar_to_parser is given as 'a parser, but this is not
-   correct given the type of _GRAMMAR 
+(* type of grammar_to_parser is now correct! except that the type
+   contains type vars that cannot be generalized. The problem is the type of _GRAMMAR *)
 
-   the issue seems to be that 'a nt = nt' = 'b nt, so any concrete 'a
-   nt can be determined by the type checker to be equal to 'a nt
-*)
+
+(* 
+
+
+val grammar_to_parser :
+  P1_core.input ->
+  [> `Rule of
+       'a *
+       [> `Rhs of
+            [> `Symsact of
+                 [> `Var_eq of
+                      'b option *
+                      [> `Nt of 'a
+                       | `Tm of [> `Dq of 'c | `Qu of 'd | `Sq of 'c ] ] ]
+                 list * [> `Code of 'c ] ]
+            list ] ]
+  list P1_core.result
+
+NOTE this is still not correct - the terminal parsers have fully
+general types, whereas we need to inject them into substring elt not
+'a elt
+
 *)
