@@ -31,6 +31,10 @@ module type MAKE_REQUIRES = sig
 
     type 'a rhs
 
+    type tm
+
+    val tm : tm -> string elt
+
     val rhs1: 'a elt -> ('a -> 'b) -> 'b rhs
     val rhs2: 'a elt * 'b elt -> ('a*'b -> 'c) -> 'c rhs
     val rhs3: 'a elt * 'b elt * 'c elt -> ('a*'b*'c -> 'd) -> 'd rhs
@@ -66,11 +70,7 @@ module Make(X:MAKE_REQUIRES) = struct
       ~a
       ~upto_a  
       ~whitespace_and_comments  (* whitespace and comments *)
-      ~(_AZs:string elt)  
-      (* NOTE if we explicitly annotate the terminals, the types are
-         OK; this perhaps implies that we should have an injection tm,
-         similar to nt for nonterms *)
-      ~azAZs ~re
+      ~_AZs ~azAZs ~re
       ~eof 
       (* nonterminals *)
       ~_GRAMMAR
@@ -81,11 +81,13 @@ module Make(X:MAKE_REQUIRES) = struct
     =
     begin
       let nt x = ops.ant2aelt x in
-      let __ = whitespace_and_comments in
+      let a x = tm (a x) in
+      let upto_a x = tm (upto_a x) in
+      let __ = tm whitespace_and_comments in
       let ( --> ) x y = ops.add_rule x y in
 
       _GRAMMAR --> rhs4 
-        (__,nt _RULES, __, eof )  (fun (_,rs,_,_) -> rs);  
+        (__,nt _RULES, __, tm eof )  (fun (_,rs,_,_) -> rs);  
 
       _RULES --> rhs1 
         (ops.star ~sep:__ (nt _RULE))  (fun rs -> rs); 
@@ -113,10 +115,10 @@ module Make(X:MAKE_REQUIRES) = struct
         (function | (`Some_var v,x) -> `Var_eq(Some v,x)
                   | (`None_var,x) -> `Var_eq(None,x));
       _VAR_EQ --> rhs2
-        (re "[a-z]+",a "=") 
+        (tm (re "[a-z]+"),a "=") 
         (fun (v,_) -> `Some_var v );
 
-      _VAR_EQ --> rhs1 eps  (fun _ -> `None_var);
+      _VAR_EQ --> rhs1 (tm eps)  (fun _ -> `None_var);
 
       _SYM --> rhs1 (nt _NT)  (fun x -> (`Nt x));
       _SYM --> rhs1 (nt _TM)  (fun x -> `Tm x);
@@ -128,50 +130,15 @@ module Make(X:MAKE_REQUIRES) = struct
         (a dq,upto_a dq,a dq)  (fun (_,s,_) -> `Dq s);
 
       _TM --> rhs3
-        (a "?",azAZs,a "?")  (fun (_,s,_) -> `Qu s);
+        (a "?",tm azAZs,a "?")  (fun (_,s,_) -> `Qu s);
 
-      _NT --> rhs1 _AZs  (fun x -> x);
+      _NT --> rhs1 (tm _AZs)  (fun x -> x);
 
       _GRAMMAR  (* NOTE we return the start nt at the point where we know the max info about its type *)
     end
 
 
   let _ = f
-
-(*
-ops:X.ops ->®ps:'a X.elt ->ª:(string -> 'b X.elt) ->
-upto_a:(string -> 'c X.elt) ->
-whitespace_and_comments:'d X.elt ->
-_AZs:'e X.elt ->ªzAZs:'f X.elt ->
-re:(string -> 'g X.elt) ->®of:'h X.elt ->
-_GRAMMAR:([> `Rule of
-               'e *
-               ([> `Rhs of
-                     ([> `Symsact of
-                           ([> `Var_eq of
-                                 'g option *
-                                 ([> `Nt of 'e
-                                   | `Tm of
-                                       [> `Dq of 'c | `Qu of 'f | `Sq of 'c ]
-                                       as 'n ]
-                                  as 'm) ]
-                            as 'l)
-                           list * ([> `Code of 'c ] as 'o) ]
-                      as 'k)
-                     list ]
-                as 'j) ]
-          as 'i)
-         list X.nt ->
-_RULES:'i list X.nt ->
-_RULE:'i X.nt ->
-_RHS:'j X.nt ->
-_SYMSACT:'k X.nt ->
-_RHSSEP:[> `Ignore ] X.nt ->
-_CODE:'o X.nt ->
-_SYMS:'l list X.nt ->
-_VAR_EQ_SYM:'l X.nt ->
-_VAR_EQ:[ `None_var | `Some_var of 'g ] X.nt ->
-_SYM:'m X.nt -> _NT:'e X.nt -> _TM:'n X.nt -> 'i list X.nt*)
 
 end (* Make *)
 
@@ -241,6 +208,10 @@ module Y = struct
   let elt2aelt = fun e -> e
 
   let ant2aelt : 'a nt -> 'a elt  = fun nt -> E_sym (S_NT (nt2nt' nt))
+
+
+  type tm = tm'
+  let tm : tm -> string elt = fun tm -> E_sym(S_TM tm)
 
   type _a  (* a dummy type var *)
   type _b 
@@ -316,13 +287,13 @@ let f'' () =
     elt2aelt (E_plus(sep,elt))
   in
   let ops = { add_rule=add_rule; star; plus; ant2aelt } in
-  let a s = tm2elt (A s) in
-  let upto_a s = tm2elt (Upto_a s) in
-  let whitespace_and_comments = tm2elt Ws in
-  let _AZs = tm2elt AZs in
-  let azAZs = tm2elt AZazs in
-  let re s = tm2elt (Re s) in
-  let eof = tm2elt Eof in
+  let a s =  (A s) in
+  let upto_a s =  (Upto_a s) in
+  let whitespace_and_comments =  Ws in
+  let _AZs =  AZs in
+  let azAZs =  AZazs in
+  let re s =  (Re s) in
+  let eof =  Eof in
   let _GRAMMAR = nt'2nt Grammar in
   let _RULES = nt'2nt Rules in
   let _RULE = nt'2nt Rule in
@@ -339,15 +310,15 @@ let f'' () =
   let _ = _GRAMMAR in
   let _GRAMMAR = (Z.f 
      ~ops
-     ~eps:(elt2stringelt (a ""))
+     ~eps:(a "")
      (* terminals *)
-     ~a:(fun s -> elt2stringelt (a s))
-     ~upto_a:(fun s -> elt2stringelt @@ upto_a s)
-     ~whitespace_and_comments:(elt2stringelt whitespace_and_comments)
-     ~_AZs:(elt2stringelt _AZs)
-     ~azAZs:(elt2stringelt azAZs)
-     ~re:(fun s -> elt2stringelt @@ re s)
-     ~eof:(elt2stringelt eof)
+     ~a
+     ~upto_a
+     ~whitespace_and_comments
+     ~_AZs
+     ~azAZs
+     ~re
+     ~eof
      (* nonterminals *)
      ~_GRAMMAR ~_RULES ~_RULE 
      ~_RHS ~_SYMSACT ~_CODE ~_RHSSEP
@@ -456,29 +427,4 @@ let grammar_to_parser i =
 
 let _ = grammar_to_parser
 
-(* type of grammar_to_parser is now correct! except that the type
-   contains type vars that cannot be generalized. The problem is the type of _GRAMMAR *)
-
-
-(* 
-
-
-val grammar_to_parser :
-  P1_core.input ->
-  [> `Rule of
-       'a *
-       [> `Rhs of
-            [> `Symsact of
-                 [> `Var_eq of
-                      'b option *
-                      [> `Nt of 'a
-                       | `Tm of [> `Dq of 'c | `Qu of 'd | `Sq of 'c ] ] ]
-                 list * [> `Code of 'c ] ]
-            list ] ]
-  list P1_core.result
-
-NOTE this is still not correct - the terminal parsers have fully
-general types, whereas we need to inject them into substring elt not
-'a elt
-
-*)
+(* type of grammar_to_parser is now correct! *)
