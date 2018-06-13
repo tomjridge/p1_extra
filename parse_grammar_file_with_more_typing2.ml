@@ -66,7 +66,11 @@ module Make(X:MAKE_REQUIRES) = struct
       ~a
       ~upto_a  
       ~whitespace_and_comments  (* whitespace and comments *)
-      ~_AZs ~azAZs ~re
+      ~(_AZs:string elt)  
+      (* NOTE if we explicitly annotate the terminals, the types are
+         OK; this perhaps implies that we should have an injection tm,
+         similar to nt for nonterms *)
+      ~azAZs ~re
       ~eof 
       (* nonterminals *)
       ~_GRAMMAR
