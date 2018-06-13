@@ -9,8 +9,21 @@
 let sq (*single quote*) = {|'|}
 let dq = {|"|}
 
+
 (* example ---------------------------------------------------------- *)
 
+(* this is an example of the kind of text we want to parse;
+   confusingly, it is itself a specification of a grammar file format
+
+   One approach would be to specify the format of these files in code
+   (as below), and then generate a parser and code generator which in
+   turn can read files with the given format. In this way, we can
+   support arbitrary grammar file
+   specifications. parse_grammar_file.ml carries out this plan, but
+   the types are less precise than they could be. This file attempts
+   to improve information about the types. Not clear that it is worth
+   all the extra effort!
+*)
 let example = {|
 
 S -> E ?ws? ?eof? {{ print_endline (x1 |> string_of_int) }}
@@ -22,7 +35,7 @@ E -> x=E y=E z=E {{ x+y+z }}
 |}
 
 
-
+(* This is more-or-less common to all grammar specs *)
 module type MAKE_REQUIRES = sig
 
     type 'a nt
@@ -42,6 +55,7 @@ module type MAKE_REQUIRES = sig
     val rhs5: 'a elt * 'b elt * 'c elt * 'd elt * 'e elt -> ('a*'b*'c*'d*'e -> 'f) -> 'f rhs
 
 
+    (* star and plus are the additional elements that we allow as part of a rhs *)
     type ops = {
       add_rule: 'a. 'a nt -> 'a rhs -> unit;
 
@@ -52,8 +66,6 @@ module type MAKE_REQUIRES = sig
 
       ant2aelt: 'a. 'a nt -> 'a elt
     }
-    (* val eps: unit sym *)
-
 end
 
 
@@ -62,7 +74,13 @@ module Make(X:MAKE_REQUIRES) = struct
   
   open X
 
-
+  (* NOTE the idea here is to get the type system to figure out all
+     the types for us, and indicate whether there are any type errors
+     in the IDE (merlin/tuareg). An alternative is to write the types
+     of the nonterminals explicitly. This is perhaps not so costly,
+     although in the below, the type of eg _GRAMMAR is rather large
+     and the details are uninteresting: the result will soon be
+     transformed to some other type *)
   let f
       ~ops
       ~eps
