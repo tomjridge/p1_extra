@@ -44,7 +44,7 @@ module Make(X:Parsing_dsl.MAKE_REQUIRES) = struct
         (a "(", __, nt _TERM, __ , nt _TERM, __, a ")")
         (fun (bar,_,t1,_,t2,_,ket) -> App(t1,t2));
 
-      _VAR -->rhs1  (tm (re "[a-z]+"))  (fun v -> Var v);
+      _VAR -->rhs1  (tm (re "[a-z]+"))  (fun ( v) -> Var v);  (* FIXME `String *)
       _S 
     end
 
@@ -133,6 +133,8 @@ let grammar_to_parser' ~(rules:rule list) =
   let open P1_core in
   let open P1_combinators in
   let open P1_terminals in
+
+  (* FIXME we don't even need much of this stuff *)
   let rec tm_to_parser' = function
     | A s -> a s
     | Upto_a s -> upto_a s
@@ -141,10 +143,11 @@ let grammar_to_parser' ~(rules:rule list) =
     | AZazs -> _AZazs
     | Re s -> re (Str.regexp s)
     | Eof -> eof >> fun _ -> ""
-  and tm_to_parser x = tm_to_parser' x >> fun x -> `String x
+  and tm_to_parser x = tm_to_parser' x >> fun x -> `String x  (* !!! *)
   and elt_to_parser = function
     | E_star(sep,elt) -> 
-      star ~sep:(elt_to_parser sep) (elt_to_parser elt) >> fun xs -> `List xs
+      (* FIXME the typing of elt_to_parser is not right; should be 'a elt -> 'a list parser *)
+      star ~sep:(elt_to_parser sep) (elt_to_parser elt) >> fun xs -> `List xs  (* !!! *)
     | E_plus(sep,elt) -> 
       plus ~sep:(elt_to_parser sep) (elt_to_parser elt) >> fun xs -> `List xs
     | E_sym sym -> sym_to_parser sym

@@ -11,6 +11,8 @@ module type MAKE_REQUIRES = sig
 
   type tm
 
+  (* FIXME but in the generic parsing, terminals actually return
+     `String _ *)
   val tm : tm -> string elt
 
   val rhs1: 'a elt -> ('a -> 'b) -> 'b rhs
