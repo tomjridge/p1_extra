@@ -12,46 +12,39 @@ type term =
       [@@deriving yojson]
 
 
-let lambda_calc_grammar
-    ~_TERM
-    ~_LAM ~_APP ~_VAR
-    ~_S
-  =
-  begin
-    let nt x = elt_ops.ant2aelt x in
-    let __ = whitespace_and_comments in
-    let ( --> ) x y = rule_ops.mk_rule x y in
-    let rules = [
-      _S -->rhs2  (nt _TERM, eof)  (fun (t,_) -> t);
+let lambda_calc_grammar =
+  let _TERM, _LAM, _APP, _VAR, _S = mk_nt(),mk_nt(),mk_nt(),mk_nt(),mk_nt() in
+  let __ = re "[ \n]*" in
+  let rules = [
+    _S -->rhs2  (nt _TERM, eof)  (fun (t,_) -> t);
 
-      (* t = \\ x. t | t1 t2 | x *)
-      _TERM -->rhs1 (nt _LAM)  (fun t -> t);
-      _TERM -->rhs1 (nt _APP)  (fun t -> t);
-      _TERM -->rhs1 (nt _VAR)  (fun t -> t);
+    (* t = \\ x. t | t1 t2 | x | (t) *)
+    _TERM -->rhs1 (nt _LAM)  (fun t -> t);
+    _TERM -->rhs1 (nt _APP)  (fun t -> t);
+    _TERM -->rhs1 (nt _VAR)  (fun t -> t);
 
-      _LAM -->rhs7 
-        (a "\\", __, nt _VAR, __, a ".", __, nt _TERM) 
-        (fun (lam,_,Var v,_,dot,_,t) -> Lam(v,t));
+    _TERM -->rhs5 
+      (a "(", __, nt _TERM, __ , a ")")
+      (fun (bar,_,t,_,ket) -> t);
 
-      _APP -->rhs7
-        (a "(", __, nt _TERM, __ , nt _TERM, __, a ")")
-        (fun (bar,_,t1,_,t2,_,ket) -> App(t1,t2));
+    _LAM -->rhs7 
+      (a "\\", __, nt _VAR, __, a ".", __, nt _TERM) 
+      (fun (lam,_,Var v,_,dot,_,t) -> Lam(v,t));
 
-      _VAR -->rhs1  (re "[a-z]+")  (fun v -> Var v)
-    ] 
-    in
-    fun f -> f ~rules ~start:_S 
-  end
+    _APP -->rhs3
+      (nt _TERM, __ , nt _TERM)
+      (fun (t1,_,t2) -> App(t1,t2));
+
+    _VAR -->rhs1  (re "[a-z]+")  (fun v -> Var v)
+  ] 
+  in
+  (`Rules rules, `Start _S)
 
 
 let lambda_calc_parser = 
-  lambda_calc_grammar
-    ~_TERM:(nt())
-    ~_LAM:(nt())
-    ~_APP:(nt())
-    ~_VAR:(nt())
-    ~_S:(nt())
-  @@ grammar_to_parser
-
+  lambda_calc_grammar |> fun (`Rules rules, `Start start) -> 
+  grammar_to_parser ~rules ~start
 
 let _ : term P1_core.parser_ = lambda_calc_parser
+
+(* example of use in bin/test_lambda_calc.ml *)

@@ -9,14 +9,10 @@
 body { font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  color: #000000;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
 span.default   { font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  color: #000000;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
 span.default a { font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  color: #000000;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
-span.constant   { color: #008b8b;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
-span.constant a { color: #008b8b;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
 span.string   { color: #8b2252;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
 span.string a { color: #8b2252;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
 span.variable-name   { color: #a0522d;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
 span.variable-name a { color: #a0522d;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
-span.function-name   { color: #0000ff;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
-span.function-name a { color: #0000ff;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
 span.keyword   { color: #a020f0;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
 span.keyword a { color: #a020f0;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
 span.constructor   { font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  color: #000000;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
@@ -147,49 +143,42 @@ span.comment-delimiter a { color: #b22222;  font-family: Ubuntu Mono;  font-stre
       <span class="operator">[@@</span>deriving yojson<span class="operator">]</span>
 
 
-<span class="governing">let</span> <span class="function-name">lambda_calc_grammar</span>
-    <span class="operator">~</span>_TERM
-    <span class="operator">~</span>_LAM <span class="operator">~</span>_APP <span class="operator">~</span>_VAR
-    <span class="operator">~</span>_S
-  <span class="operator">=</span>
-  <span class="governing">begin</span>
-    <span class="governing">let</span> <span class="function-name">nt</span><span class="variable-name"> x</span> <span class="operator">=</span> elt_ops.ant2aelt x <span class="governing">in</span>
-    <span class="governing">let</span> <span class="variable-name">__</span> <span class="operator">=</span> whitespace_and_comments <span class="governing">in</span>
-    <span class="governing">let</span> <span class="operator">(</span> <span class="operator">--&gt;</span> <span class="operator">)</span> x y <span class="operator">=</span> rule_ops.mk_rule x y <span class="governing">in</span>
-    <span class="governing">let</span> <span class="variable-name">rules</span> <span class="operator">=</span> <span class="operator">[</span>
-      _S <span class="operator">--&gt;</span>rhs2  <span class="operator">(</span>nt _TERM<span class="operator">,</span> eof<span class="operator">)</span>  <span class="operator">(</span><span class="keyword">fun</span> <span class="operator">(</span><span class="variable-name">t</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">)</span> <span class="operator">-&gt;</span> t<span class="operator">);</span>
+<span class="governing">let</span> <span class="variable-name">lambda_calc_grammar</span> <span class="operator">=</span>
+  <span class="governing">let</span> <span class="variable-name">_TERM</span><span class="operator">,</span><span class="variable-name"> _LAM</span><span class="operator">,</span><span class="variable-name"> _APP</span><span class="operator">,</span><span class="variable-name"> _VAR</span><span class="operator">,</span><span class="variable-name"> _S</span> <span class="operator">=</span> mk_nt<span class="operator">(),</span>mk_nt<span class="operator">(),</span>mk_nt<span class="operator">(),</span>mk_nt<span class="operator">(),</span>mk_nt<span class="operator">()</span> <span class="governing">in</span>
+  <span class="governing">let</span> <span class="variable-name">__</span> <span class="operator">=</span> re <span class="string">&quot;[ \n]*&quot;</span> <span class="governing">in</span>
+  <span class="governing">let</span> <span class="variable-name">rules</span> <span class="operator">=</span> <span class="operator">[</span>
+    _S <span class="operator">--&gt;</span>rhs2  <span class="operator">(</span>nt _TERM<span class="operator">,</span> eof<span class="operator">)</span>  <span class="operator">(</span><span class="keyword">fun</span> <span class="operator">(</span><span class="variable-name">t</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">)</span> <span class="operator">-&gt;</span> t<span class="operator">);</span>
 
-      <span class="comment-delimiter">(* </span><span class="comment">t = \\ x. t | t1 t2 | x </span><span class="comment-delimiter">*)</span>
-      _TERM <span class="operator">--&gt;</span>rhs1 <span class="operator">(</span>nt _LAM<span class="operator">)</span>  <span class="operator">(</span><span class="keyword">fun</span> <span class="variable-name">t</span> <span class="operator">-&gt;</span> t<span class="operator">);</span>
-      _TERM <span class="operator">--&gt;</span>rhs1 <span class="operator">(</span>nt _APP<span class="operator">)</span>  <span class="operator">(</span><span class="keyword">fun</span> <span class="variable-name">t</span> <span class="operator">-&gt;</span> t<span class="operator">);</span>
-      _TERM <span class="operator">--&gt;</span>rhs1 <span class="operator">(</span>nt _VAR<span class="operator">)</span>  <span class="operator">(</span><span class="keyword">fun</span> <span class="variable-name">t</span> <span class="operator">-&gt;</span> t<span class="operator">);</span>
+    <span class="comment-delimiter">(* </span><span class="comment">t = \\ x. t | t1 t2 | x | (t) </span><span class="comment-delimiter">*)</span>
+    _TERM <span class="operator">--&gt;</span>rhs1 <span class="operator">(</span>nt _LAM<span class="operator">)</span>  <span class="operator">(</span><span class="keyword">fun</span> <span class="variable-name">t</span> <span class="operator">-&gt;</span> t<span class="operator">);</span>
+    _TERM <span class="operator">--&gt;</span>rhs1 <span class="operator">(</span>nt _APP<span class="operator">)</span>  <span class="operator">(</span><span class="keyword">fun</span> <span class="variable-name">t</span> <span class="operator">-&gt;</span> t<span class="operator">);</span>
+    _TERM <span class="operator">--&gt;</span>rhs1 <span class="operator">(</span>nt _VAR<span class="operator">)</span>  <span class="operator">(</span><span class="keyword">fun</span> <span class="variable-name">t</span> <span class="operator">-&gt;</span> t<span class="operator">);</span>
 
-      _LAM <span class="operator">--&gt;</span>rhs7 
-        <span class="operator">(</span>a <span class="string">&quot;\\&quot;</span><span class="operator">,</span> __<span class="operator">,</span> nt _VAR<span class="operator">,</span> __<span class="operator">,</span> a <span class="string">&quot;.&quot;</span><span class="operator">,</span> __<span class="operator">,</span> nt _TERM<span class="operator">)</span> 
-        <span class="operator">(</span><span class="keyword">fun</span> <span class="operator">(</span><span class="variable-name">lam</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="constructor">Var</span><span class="variable-name"> v</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="variable-name">dot</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="variable-name">t</span><span class="operator">)</span> <span class="operator">-&gt;</span> <span class="constructor">Lam</span><span class="operator">(</span>v<span class="operator">,</span>t<span class="operator">));</span>
+    _TERM <span class="operator">--&gt;</span>rhs5 
+      <span class="operator">(</span>a <span class="string">&quot;(&quot;</span><span class="operator">,</span> __<span class="operator">,</span> nt _TERM<span class="operator">,</span> __ <span class="operator">,</span> a <span class="string">&quot;)&quot;</span><span class="operator">)</span>
+      <span class="operator">(</span><span class="keyword">fun</span> <span class="operator">(</span><span class="variable-name">bar</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="variable-name">t</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="variable-name">ket</span><span class="operator">)</span> <span class="operator">-&gt;</span> t<span class="operator">);</span>
 
-      _APP <span class="operator">--&gt;</span>rhs7
-        <span class="operator">(</span>a <span class="string">&quot;(&quot;</span><span class="operator">,</span> __<span class="operator">,</span> nt _TERM<span class="operator">,</span> __ <span class="operator">,</span> nt _TERM<span class="operator">,</span> __<span class="operator">,</span> a <span class="string">&quot;)&quot;</span><span class="operator">)</span>
-        <span class="operator">(</span><span class="keyword">fun</span> <span class="operator">(</span><span class="variable-name">bar</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="variable-name">t1</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="variable-name">t2</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="variable-name">ket</span><span class="operator">)</span> <span class="operator">-&gt;</span> <span class="constructor">App</span><span class="operator">(</span>t1<span class="operator">,</span>t2<span class="operator">));</span>
+    _LAM <span class="operator">--&gt;</span>rhs7 
+      <span class="operator">(</span>a <span class="string">&quot;\\&quot;</span><span class="operator">,</span> __<span class="operator">,</span> nt _VAR<span class="operator">,</span> __<span class="operator">,</span> a <span class="string">&quot;.&quot;</span><span class="operator">,</span> __<span class="operator">,</span> nt _TERM<span class="operator">)</span> 
+      <span class="operator">(</span><span class="keyword">fun</span> <span class="operator">(</span><span class="variable-name">lam</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="constructor">Var</span><span class="variable-name"> v</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="variable-name">dot</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="variable-name">t</span><span class="operator">)</span> <span class="operator">-&gt;</span> <span class="constructor">Lam</span><span class="operator">(</span>v<span class="operator">,</span>t<span class="operator">));</span>
 
-      _VAR <span class="operator">--&gt;</span>rhs1  <span class="operator">(</span>re <span class="string">&quot;[a-z]+&quot;</span><span class="operator">)</span>  <span class="operator">(</span><span class="keyword">fun</span> <span class="variable-name">v</span> <span class="operator">-&gt;</span> <span class="constructor">Var</span> v<span class="operator">)</span>
-    <span class="operator">]</span> 
-    <span class="governing">in</span>
-    <span class="keyword">fun</span> <span class="variable-name">f</span> <span class="operator">-&gt;</span> f <span class="operator">~</span>rules <span class="constant">~start</span><span class="operator">:</span>_S 
-  <span class="governing">end</span>
+    _APP <span class="operator">--&gt;</span>rhs3
+      <span class="operator">(</span>nt _TERM<span class="operator">,</span> __ <span class="operator">,</span> nt _TERM<span class="operator">)</span>
+      <span class="operator">(</span><span class="keyword">fun</span> <span class="operator">(</span><span class="variable-name">t1</span><span class="operator">,</span><span class="variable-name">_</span><span class="operator">,</span><span class="variable-name">t2</span><span class="operator">)</span> <span class="operator">-&gt;</span> <span class="constructor">App</span><span class="operator">(</span>t1<span class="operator">,</span>t2<span class="operator">));</span>
+
+    _VAR <span class="operator">--&gt;</span>rhs1  <span class="operator">(</span>re <span class="string">&quot;[a-z]+&quot;</span><span class="operator">)</span>  <span class="operator">(</span><span class="keyword">fun</span> <span class="variable-name">v</span> <span class="operator">-&gt;</span> <span class="constructor">Var</span> v<span class="operator">)</span>
+  <span class="operator">]</span> 
+  <span class="governing">in</span>
+  <span class="operator">(</span><span class="constructor">`Rules</span> rules<span class="operator">,</span> <span class="constructor">`Start</span> _S<span class="operator">)</span>
 
 
 <span class="governing">let</span> <span class="variable-name">lambda_calc_parser</span> <span class="operator">=</span> 
-  lambda_calc_grammar
-    <span class="constant">~_TERM</span><span class="operator">:(</span>nt<span class="operator">())</span>
-    <span class="constant">~_LAM</span><span class="operator">:(</span>nt<span class="operator">())</span>
-    <span class="constant">~_APP</span><span class="operator">:(</span>nt<span class="operator">())</span>
-    <span class="constant">~_VAR</span><span class="operator">:(</span>nt<span class="operator">())</span>
-    <span class="constant">~_S</span><span class="operator">:(</span>nt<span class="operator">())</span>
-  <span class="operator">@@</span> grammar_to_parser
-
+  lambda_calc_grammar <span class="operator">|&gt;</span> <span class="keyword">fun</span> <span class="operator">(</span><span class="constructor">`Rules</span><span class="variable-name"> rules</span><span class="operator">,</span><span class="variable-name"> </span><span class="constructor">`Start</span><span class="variable-name"> start</span><span class="operator">)</span> <span class="operator">-&gt;</span> 
+  grammar_to_parser <span class="operator">~</span>rules <span class="operator">~</span>start
 
 <span class="governing">let</span> <span class="variable-name">_</span> <span class="operator">:</span> <span class="type">term </span><span class="module">P1_core.</span><span class="type">parser_ </span><span class="operator">=</span> lambda_calc_parser
+
+<span class="comment-delimiter">(* </span><span class="comment">example of use in bin/test_lambda_calc.ml </span><span class="comment-delimiter">*)</span>
 </pre>
 
  </body>

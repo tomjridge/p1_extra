@@ -7,10 +7,12 @@ module Nt = (
 struct
   type 'a nt = int
   let counter = ref 0
-  let nt () = counter:=!counter+1; !counter
+  let mk_nt () = counter:=!counter+1; !counter
+  let to_int x = x
 end : sig 
   type 'a nt
-  val nt: unit -> 'a nt 
+  val mk_nt: unit -> 'a nt 
+  val to_int: 'a nt -> int
 end)
 open Nt
 
@@ -211,7 +213,10 @@ let grammar_to_parser ~(rules:untyped_rule list) =
           fun r -> 
             let rhs = r.rhs in
             rhs_to_parser rhs)) 
-  and nt_to_parser: 'a. 'a nt -> 'a parser_ = fun nt -> (Obj.magic nt_to_parser' nt)
+  and nt_to_parser: 'a. 'a nt -> 'a parser_ = 
+    fun nt -> 
+      let nt_s = string_of_int (Nt.to_int nt) in
+      P1_core.check nt_s (Obj.magic nt_to_parser' nt)
   and rhs_to_parser: 'a. 'a rhs -> 'a parser_ = 
     (* FIXME obviously the following is rather scary *)
     function
@@ -259,3 +264,7 @@ let grammar_to_parser ~(rules:untyped_rule list) =
 let _ : rules:untyped_rule list -> start:'a nt -> 'a P1_core.parser_ = grammar_to_parser
 
 
+
+let ( --> ) x y = rule_ops.mk_rule x y
+
+let nt x = elt_ops.ant2aelt x
