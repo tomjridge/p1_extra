@@ -254,9 +254,8 @@ let grammar_to_parser ~(rules:untyped_rule list) =
         elt_to_parser s7)
       >> (fun (x,(y,(z,(w,(u,(v,a)))))) -> act (Obj.magic (x,y,z,w,u,v,a)))
   in
-  nt_to_parser
+  fun ~start -> nt_to_parser start
 
-let _ : rules:untyped_rule list -> 'a nt -> 'a P1_core.parser_ = grammar_to_parser
-
+let _ : rules:untyped_rule list -> start:'a nt -> 'a P1_core.parser_ = grammar_to_parser
 
 

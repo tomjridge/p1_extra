@@ -12,7 +12,7 @@ type term =
       [@@deriving yojson]
 
 
-let make_grammar
+let lambda_calc_grammar
     ~_TERM
     ~_LAM ~_APP ~_VAR
     ~_S
@@ -40,30 +40,18 @@ let make_grammar
       _VAR -->rhs1  (re "[a-z]+")  (fun v -> Var v)
     ] 
     in
-    _S,rules
+    fun f -> f ~rules ~start:_S 
   end
 
 
-let make_grammar () =
-  let _S = nt() in
-  let _TERM = nt() in
-  let _LAM = nt() in
-  let _APP = nt() in
-  let _VAR = nt() in
-  let _S,rules = 
-    make_grammar
-      ~_TERM
-      ~_LAM ~_APP ~_VAR
-      ~_S
-  in
-  _S,rules
-
-
 let lambda_calc_parser = 
-  let _S,rules = make_grammar () in
-  grammar_to_parser
-    ~rules
-    _S
+  lambda_calc_grammar
+    ~_TERM:(nt())
+    ~_LAM:(nt())
+    ~_APP:(nt())
+    ~_VAR:(nt())
+    ~_S:(nt())
+  @@ grammar_to_parser
 
 
 let _ : term P1_core.parser_ = lambda_calc_parser
