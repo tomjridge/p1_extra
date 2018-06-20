@@ -12,6 +12,25 @@ module Make_elt(X: sig type 'a nt [@@deriving yojson] end) = struct
     | E_nt: 'a nt -> 'a elt
     | E_tm: 'a parser_ -> 'a elt  
 (*  [@@deriving yojson] doesn't work with *)
+
+
+  module Terminals = struct 
+    open P1_terminals
+    (* generic; could even add to Elt.Terminals ; but still need to explicitly open *)
+    let a s = E_tm (a s)
+    let whitespace_and_comments = E_tm (ws)
+    let re s = E_tm (re (Str.regexp s))
+    let eof = E_tm eof
+  end
+
+
+
+  (* add to elt *)
+  let star ~sep elt = E_star(sep,elt) 
+  let plus ~sep elt = E_plus(sep,elt) 
+  let ant2aelt x = E_nt x 
+
+
 end
 
 
@@ -51,6 +70,7 @@ module Make_rhs(X: sig type 'a elt end) = struct
   let rhs7 : 'a elt * 'b elt * 'c elt * 'd elt * 'e elt * 'f elt * 'g elt -> 
     ('a*'b*'c*'d*'e*'f*'g -> 'h) -> 'h rhs = fun x y -> Rhs7(Obj.magic x,Obj.magic y)
 end
+
 
 (* make_ops --------------------------------------------------------- *)
 
@@ -211,6 +231,7 @@ end
 
 (* more generic stuff: untyped rules -------------------------------- *)
 
+(* FIXME combine with ops? *)
 type 'a rule = { nt: 'a nt; rhs: 'a rhs }
 
 type untyped_rule =
@@ -309,37 +330,38 @@ let _ : rules:untyped_rule list -> 'a nt -> 'a P1_core.parser_ = grammar_to_pars
 module Grammar = Make_grammar(Grammar_requires)
 
 (* FIXME this repeats a lot of stuff from pgf2 *)
+(* FIXME some of this is common; some (star, plus) is generic *)
 let make_grammar () =
   let rs = ref [] in
   let add_rule (type a) (nt:a nt) (rhs:a rhs) = 
     rs:=(Urule { nt; rhs })::!rs 
   in
-  let star ~sep elt = E_star(sep,elt) in
-  let plus ~sep elt = E_plus(sep,elt) in
-  let ant2aelt x = E_nt x in
-  let ops = { add_rule=add_rule; star; plus; ant2aelt } in
-  let open P1_terminals in
-  let a s = E_tm (a s) in
-  let whitespace_and_comments = E_tm (ws) in
-  let re s = E_tm (re (Str.regexp s)) in
-  let eof = E_tm eof in
+
+
+  (* FIXME 3 of these belong with elt *)
+  let ops = Elt.{ add_rule; star; plus; ant2aelt } in
+
   let _S = S in
   let _TERM = TERM in
   let _LAM = LAM in
   let _APP = APP in
   let _VAR = VAR in
-  let _S = (Grammar.make_grammar
-     ~ops
-     (* terminals *)
-     ~a
-     ~whitespace_and_comments
-     ~re
-     ~eof
-     (* nonterminals *)
+
+  let open Elt.Terminals in
+  let _S = 
+    Grammar.make_grammar
+      ~ops
+      (* terminals *)
+      ~a
+      ~whitespace_and_comments
+      ~re
+      ~eof
+      (* nonterminals *)
       ~_TERM
       ~_LAM ~_APP ~_VAR
-      ~_S)
+      ~_S
   in
+  (* FIXME now we have rules, we can just return the urules paired with nt *)
   _S,List.rev !rs
 
 
