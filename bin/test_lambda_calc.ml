@@ -10,6 +10,3 @@ let r =
       |> term_to_yojson
       |> Yojson.Safe.pretty_to_string
       |> print_endline)
-
-(* FIXME this prints out funny - looks like the terminal parsers are
-   returning a substring not a string *)
