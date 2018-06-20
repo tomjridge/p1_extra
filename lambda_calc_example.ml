@@ -30,6 +30,17 @@ module Make_elt(X: sig type 'a nt [@@deriving yojson] end) = struct
   let plus ~sep elt = E_plus(sep,elt) 
   let ant2aelt x = E_nt x 
 
+  (* star and plus are the additional elements that we allow as part of a rhs *)
+  type elt_ops = {
+    (* these cannot be passed as args to a function because we need
+       the general type *)
+    star: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
+    plus: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
+    ant2aelt: 'a. 'a nt -> 'a elt
+  }
+
+  (* FIXME just bind using let in this module? or is the problem that we want to avoid this in GRAMMAR_REQUIRES? *)
+  let elt_ops = { star; plus; ant2aelt }
 
 end
 
@@ -72,9 +83,9 @@ module Make_rhs(X: sig type 'a elt end) = struct
 end
 
 
-(* make_ops --------------------------------------------------------- *)
+(* make_rule_ops ----------------------------------------------------- *)
 
-module Make_ops(
+module Make_rule_ops(
     X:sig 
       type 'a nt
       type 'a elt 
@@ -83,16 +94,21 @@ module Make_ops(
 = struct
   open X
 
-  type ops = {
-    add_rule: 'a. 'a nt -> 'a rhs -> unit;
+  type 'a rule = { nt: 'a nt; rhs: 'a rhs }
 
-    (* these cannot be passed as args to a function because we need
-       the general type *)
-    star: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
-    plus: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
+  type untyped_rule =
+    | Urule: 'a rule -> untyped_rule
 
-    ant2aelt: 'a. 'a nt -> 'a elt
+  let mk_rule (type a) (nt:a nt) (rhs:a rhs) = Urule { nt; rhs }
+
+
+  type rule_ops = {
+    mk_rule: 'a. 'a nt -> 'a rhs -> untyped_rule;
   }
+
+  let rule_ops = { mk_rule }
+
+
 end
 
 
@@ -103,7 +119,14 @@ module type GRAMMAR_REQUIRES = sig
 
   type 'a nt
 
+  (* FIXME factor our the elt part, include vals rather than ops *)
   type 'a elt  (* things that can appear in a rhs *)
+
+  type elt_ops = {
+    star: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
+    plus: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
+    ant2aelt: 'a. 'a nt -> 'a elt
+  }
 
   type 'a rhs
 
@@ -118,77 +141,22 @@ module type GRAMMAR_REQUIRES = sig
     ('a*'b*'c*'d*'e*'f*'g -> 'h) -> 'h rhs
 
 
+  type untyped_rule
+
+
   (* star and plus are the additional elements that we allow as part of a rhs *)
-  type ops = {
-    add_rule: 'a. 'a nt -> 'a rhs -> unit;
-
-    (* these cannot be passed as args to a function because we need
-       the general type *)
-    star: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
-    plus: 'a 'b. sep:'a elt -> 'b elt -> 'b list elt;
-
-    ant2aelt: 'a. 'a nt -> 'a elt
+  type rule_ops = {
+    mk_rule: 'a. 'a nt -> 'a rhs -> untyped_rule;
   }
+
+
+
+
 end
 
               
 
 
-(* lambda calc grammar ---------------------------------------------- *)
-
-type term = 
-    Lam of string * term | App of term * term | Var of string
-      [@@deriving yojson]
-
-
-module Make_grammar(X:GRAMMAR_REQUIRES) = struct  
-  open X
-
-  let make_grammar
-      ~ops
-      (* terminals *)
-      ~(a:string -> string elt)
-      ~(whitespace_and_comments: string elt)  (* whitespace and comments *)
-      ~(re:string -> string elt)
-      ~(eof:unit elt)
-      (* nonterminals *)
-      ~(_TERM:term nt)
-      ~_LAM ~_APP ~_VAR
-      ~_S
-    =
-    begin
-      let nt x = ops.ant2aelt x in
-      let __ = whitespace_and_comments in
-      let ( --> ) x y = ops.add_rule x y in
-
-      _S -->rhs2  (nt _TERM, eof)  (fun (t,_) -> t);
-
-      _TERM -->rhs1 (nt _LAM)  (fun t -> t);
-      _TERM -->rhs1 (nt _APP)  (fun t -> t);
-      _TERM -->rhs1 (nt _VAR)  (fun t -> t);
-
-      _LAM -->rhs7 
-        (a "\\", __, nt _VAR, __, a ".", __, nt _TERM) 
-        (fun (lam,_,Var v,_,dot,_,t) -> Lam(v,t));
-
-      _APP -->rhs7
-        (a "(", __, nt _TERM, __ , nt _TERM, __, a ")")
-        (fun (bar,_,t1,_,t2,_,ket) -> App(t1,t2));
-
-      _VAR -->rhs1  (re "[a-z]+")  (fun v -> Var v); 
-      _S 
-    end
-
-
-  let _ :
-ops:X.ops ->a:(string -> string X.elt) ->
-whitespace_and_comments:string X.elt ->
-re:(string -> string X.elt) ->eof:unit X.elt ->
-_TERM:term X.nt ->
-_LAM:term X.nt ->
-_APP:term X.nt -> _VAR:term X.nt -> _S:term X.nt -> term X.nt
-    = make_grammar
-end
 
 
 (* FIXME can use phantom typevar to avoid functorization over Nt' *)
@@ -218,29 +186,20 @@ module Ops_requires = struct
   type 'a rhs = 'a Rhs.rhs
 end
 
-module Ops = Make_ops(Ops_requires)
-include Ops
+module Rule_ops = Make_rule_ops(Ops_requires)
+include Rule_ops
 
 module Grammar_requires = struct
   include Nonterminals
   include Elt
   include Rhs
-  include Ops
+  include Rule_ops
 end
-
-
-(* more generic stuff: untyped rules -------------------------------- *)
-
-(* FIXME combine with ops? *)
-type 'a rule = { nt: 'a nt; rhs: 'a rhs }
-
-type untyped_rule =
-  | Urule: 'a rule -> untyped_rule
 
 
 (* generic: grammar_to_parser --------------------------------------- *)
 
-   (* NOTE the following is more-or-less independent of the nature of the
+(* NOTE the following is more-or-less independent of the nature of the
    terminals or the nonterminals *)
 (* FIXME this can be moved to parsing_dsl *)
 let grammar_to_parser ~(rules:untyped_rule list) = 
@@ -325,32 +284,81 @@ let _ : rules:untyped_rule list -> 'a nt -> 'a P1_core.parser_ = grammar_to_pars
 
 
 
-(* grammar_to_parser, with actions ---------------------------------- *)
+
+(* lambda calc grammar ---------------------------------------------- *)
+
+type term = 
+    Lam of string * term | App of term * term | Var of string
+      [@@deriving yojson]
+
+
+module Make_grammar(X:GRAMMAR_REQUIRES) = struct  
+  open X
+
+  let make_grammar
+      ~elt_ops
+      ~rule_ops
+      (* terminals *)
+      ~(a:string -> string elt)
+      ~(whitespace_and_comments: string elt)  (* whitespace and comments *)
+      ~(re:string -> string elt)
+      ~(eof:unit elt)
+      (* nonterminals *)
+      ~(_TERM:term nt)
+      ~_LAM ~_APP ~_VAR
+      ~_S
+    =
+    begin
+      let nt x = elt_ops.ant2aelt x in
+      let __ = whitespace_and_comments in
+      let ( --> ) x y = rule_ops.mk_rule x y in
+      let rules = [
+        _S -->rhs2  (nt _TERM, eof)  (fun (t,_) -> t);
+
+        _TERM -->rhs1 (nt _LAM)  (fun t -> t);
+        _TERM -->rhs1 (nt _APP)  (fun t -> t);
+        _TERM -->rhs1 (nt _VAR)  (fun t -> t);
+
+        _LAM -->rhs7 
+          (a "\\", __, nt _VAR, __, a ".", __, nt _TERM) 
+          (fun (lam,_,Var v,_,dot,_,t) -> Lam(v,t));
+
+        _APP -->rhs7
+          (a "(", __, nt _TERM, __ , nt _TERM, __, a ")")
+          (fun (bar,_,t1,_,t2,_,ket) -> App(t1,t2));
+
+        _VAR -->rhs1  (re "[a-z]+")  (fun v -> Var v)
+      ] 
+      in
+      _S,rules
+    end
+
+
+  let _ :
+elt_ops:'elt_ops -> rule_ops:'rule_ops ->a:(string -> string X.elt) ->
+whitespace_and_comments:string X.elt ->
+re:(string -> string X.elt) ->eof:unit X.elt ->
+_TERM:term X.nt ->
+_LAM:term X.nt ->
+_APP:term X.nt -> _VAR:term X.nt -> _S:term X.nt -> term X.nt * untyped_rule list
+    = make_grammar
+end
+
+
 
 module Grammar = Make_grammar(Grammar_requires)
 
-(* FIXME this repeats a lot of stuff from pgf2 *)
-(* FIXME some of this is common; some (star, plus) is generic *)
 let make_grammar () =
-  let rs = ref [] in
-  let add_rule (type a) (nt:a nt) (rhs:a rhs) = 
-    rs:=(Urule { nt; rhs })::!rs 
-  in
-
-
-  (* FIXME 3 of these belong with elt *)
-  let ops = Elt.{ add_rule; star; plus; ant2aelt } in
-
   let _S = S in
   let _TERM = TERM in
   let _LAM = LAM in
   let _APP = APP in
   let _VAR = VAR in
-
   let open Elt.Terminals in
-  let _S = 
+  let _S,rules = 
     Grammar.make_grammar
-      ~ops
+      ~elt_ops:Elt.elt_ops
+      ~rule_ops:Rule_ops.rule_ops
       (* terminals *)
       ~a
       ~whitespace_and_comments
@@ -361,11 +369,9 @@ let make_grammar () =
       ~_LAM ~_APP ~_VAR
       ~_S
   in
-  (* FIXME now we have rules, we can just return the urules paired with nt *)
-  _S,List.rev !rs
+  _S,rules
 
 
-(* FIXME do we need eta expansion? *)
 let lambda_calc_parser = 
   let _S,rules = make_grammar () in
   grammar_to_parser
