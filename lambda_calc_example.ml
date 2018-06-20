@@ -18,6 +18,8 @@ let lambda_calc_grammar =
   let rules = [
     _S -->rhs2  (nt _TERM, eof)  (fun (t,_) -> t);
 
+    (* NOTE this grammar has left recursion (app), and is highly
+       ambiguous *)
     (* t = \\ x. t | t1 t2 | x | (t) *)
     _TERM -->rhs1 (nt _LAM)  (fun t -> t);
     _TERM -->rhs1 (nt _APP)  (fun t -> t);
