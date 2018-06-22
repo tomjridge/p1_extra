@@ -40,11 +40,11 @@ let lambda_calc_grammar =
     _VAR -->rhs1  (re "[a-z]+")  (fun v -> Var v)
   ] 
   in
-  (`Rules rules, `Start _S)
+  (rules, _S)  (* S is start symbol *)
 
 
 let lambda_calc_parser = 
-  lambda_calc_grammar |> fun (`Rules rules, `Start start) -> 
+  lambda_calc_grammar |> fun (rules, start) -> 
   grammar_to_parser ~rules ~start
 
 let _ : term P1_core.parser_ = lambda_calc_parser
