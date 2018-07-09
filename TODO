@@ -1,0 +1,6 @@
+-*- org -*-
+
+- move to src subdir
+- use dsl with earley parser
+- a dsl without actions, or with multiple (configurable)
+  actions... but perhaps we just pass in the actions as functions
