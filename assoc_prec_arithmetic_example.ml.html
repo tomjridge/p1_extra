@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>assoc_prec_arithmetic_example.ml</title>
+<meta name="generator" content="emacs 25.3.1; htmlfontify 0.21" />
+<style type="text/css"><!-- 
+body { font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  color: #000000;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.default   { font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  color: #000000;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.default a { font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  color: #000000;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+span.keyword   { color: #a020f0;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.keyword a { color: #a020f0;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+span.variable-name   { color: #a0522d;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.variable-name a { color: #a0522d;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+span.function-name   { color: #0000ff;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.function-name a { color: #0000ff;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+span.constructor   { font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  color: #000000;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.constructor a { font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  color: #000000;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+span.type   { color: #228b22;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.type a { color: #228b22;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+span.operator   { color: #a52a2a;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.operator a { color: #a52a2a;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+span.module   { color: #228b22;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.module a { color: #228b22;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+span.governing   { color: #000000;  font-weight: 700;  font-family: Ubuntu Mono;  font-stretch: normal;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.governing a { color: #000000;  font-weight: 700;  font-family: Ubuntu Mono;  font-stretch: normal;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+span.comment   { color: #b22222;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.comment a { color: #b22222;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+span.comment-delimiter   { color: #b22222;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: none; }
+span.comment-delimiter a { color: #b22222;  font-family: Ubuntu Mono;  font-stretch: normal;  font-weight: 500;  font-style: normal;  background: #ffffff;  font-size: 10pt;  text-decoration: underline; }
+ --></style>
+
+    <script type="text/javascript"><!--
+  // this function is needed to work around
+  // a bug in IE related to element attributes
+  function hasClass(obj)
+  {
+      var result = false;
+      if (obj.getAttributeNode("class") != null)
+      {
+          result = obj.getAttributeNode("class").value;
+      }
+      return result;
+  }
+
+  function stripe(id)
+  {
+      // the flag we'll use to keep track of
+      // whether the current row is odd or even
+      var even = false;
+
+      // if arguments are provided to specify the colors
+      // of the even & odd rows, then use the them;
+      // otherwise use the following defaults:
+      var evenColor = arguments[1] ? arguments[1] : "#fff";
+      var oddColor  = arguments[2] ? arguments[2] : "#ddd";
+
+      // obtain a reference to the desired table
+      // if no such table exists, abort
+      var table = document.getElementById(id);
+      if (! table) { return; }
+
+      // by definition, tables can have more than one tbody
+      // element, so we'll have to get the list of child
+      // &lt;tbody&gt;s
+      var tbodies = table.getElementsByTagName("tbody");
+
+      // and iterate through them...
+      for (var h = 0; h < tbodies.length; h++)
+      {
+          // find all the &lt;tr&gt; elements...
+          var trs = tbodies[h].getElementsByTagName("tr");
+
+          // ... and iterate through them
+          for (var i = 0; i < trs.length; i++)
+          {
+              // avoid rows that have a class attribute
+              // or backgroundColor style
+              if (! hasClass(trs[i]) &&
+                  ! trs[i].style.backgroundColor)
+              {
+                  // get all the cells in this row...
+                  var tds = trs[i].getElementsByTagName("td");
+
+                  // and iterate through them...
+                  for (var j = 0; j < tds.length; j++)
+                  {
+                      var mytd = tds[j];
+
+                      // avoid cells that have a class attribute
+                      // or backgroundColor style
+                      if (! hasClass(mytd) &&
+                          ! mytd.style.backgroundColor)
+                      {
+                          mytd.style.backgroundColor =
+                            even ? evenColor : oddColor;
+                      }
+                  }
+              }
+              // flip from odd to even, or vice-versa
+              even =  ! even;
+          }
+      }
+  }
+
+  function toggle_invis( name )
+  {
+      var filter =
+        { acceptNode:
+          function( node )
+          { var classname = node.id;
+            if( classname )
+            { var classbase = classname.substr( 0, name.length );
+              if( classbase == name ) { return NodeFilter.FILTER_ACCEPT; } }
+            return NodeFilter.FILTER_SKIP; } };
+      var walker = document.createTreeWalker( document.body           ,
+                                              NodeFilter.SHOW_ELEMENT ,
+                                              filter                  ,
+                                              false                   );
+      while( walker.nextNode() )
+      {
+          var e = walker.currentNode;
+          if( e.style.display == "none" ) { e.style.display = "inline"; }
+          else                            { e.style.display = "none";   }
+      }
+  }
+--> </script>
+  </head>
+  <body onload="stripe('index'); return true;">
+
+<pre><span class="comment-delimiter">(* </span><span class="comment">arithmetic grammar ---------------------------------------------- </span><span class="comment-delimiter">*)</span>
+
+<span class="governing">module</span> <span class="governing">type</span> <span class="module">REQUIRED</span> <span class="operator">=</span>  <span class="governing">sig</span>
+  <span class="governing">type</span> <span class="type">op</span> <span class="operator">=</span> <span class="operator">[</span> <span class="constructor">`Plus</span> <span class="operator">|</span> <span class="constructor">`Times</span> <span class="operator">]</span>
+  <span class="governing">type</span> <span class="type">prec</span> <span class="operator">=</span> op
+
+  <span class="governing">type</span> <span class="type">'a raw_nt</span> <span class="comment-delimiter">(* </span><span class="comment">without ord and prec </span><span class="comment-delimiter">*)</span>
+  <span class="governing">type</span> <span class="type">'a nt</span>
+  <span class="governing">val</span> <span class="function-name">raw_to_nt</span><span class="operator">:</span> 'a raw_nt <span class="operator">-&gt;</span> prec <span class="operator">-&gt;</span> 'a nt
+  <span class="governing">val</span> <span class="function-name">mk_raw</span><span class="operator">:</span> unit <span class="operator">-&gt;</span> 'a raw_nt
+
+  <span class="governing">type</span> <span class="type">'a elt</span>
+  <span class="governing">val</span> <span class="function-name">int_</span> <span class="operator">:</span> int elt  <span class="comment-delimiter">(* </span><span class="comment">terminal </span><span class="comment-delimiter">*)</span>
+
+  <span class="governing">val</span> <span class="function-name">raw</span><span class="operator">:</span> 'a raw_nt <span class="operator">-&gt;</span> prec <span class="operator">-&gt;</span> 'a elt
+  <span class="governing">val</span> <span class="function-name">nt</span><span class="operator">:</span> 'a nt <span class="operator">-&gt;</span> 'a elt
+
+
+  <span class="governing">type</span> <span class="type">'a rhs</span>
+
+  <span class="governing">val</span> <span class="function-name">op2elt</span><span class="operator">:</span> op <span class="operator">-&gt;</span> unit elt 
+
+  <span class="governing">val</span> <span class="function-name">rhs1</span><span class="operator">:</span> 'a elt <span class="operator">-&gt;</span> <span class="operator">(</span>'a <span class="operator">-&gt;</span> 'b<span class="operator">)</span> <span class="operator">-&gt;</span> 'b rhs
+  <span class="governing">val</span> <span class="function-name">rhs2</span><span class="operator">:</span> 'a elt <span class="operator">*</span> 'b elt <span class="operator">-&gt;</span> <span class="operator">(</span>'a<span class="operator">*</span>'b <span class="operator">-&gt;</span> 'c<span class="operator">)</span> <span class="operator">-&gt;</span> 'c rhs
+  <span class="governing">val</span> <span class="function-name">rhs3</span><span class="operator">:</span> 'a elt <span class="operator">*</span> 'b elt <span class="operator">*</span> 'c elt <span class="operator">-&gt;</span> <span class="operator">(</span>'a<span class="operator">*</span>'b<span class="operator">*</span>'c <span class="operator">-&gt;</span> 'd<span class="operator">)</span> <span class="operator">-&gt;</span> 'd rhs
+  <span class="governing">val</span> <span class="function-name">rhs4</span><span class="operator">:</span> 'a elt <span class="operator">*</span> 'b elt <span class="operator">*</span> 'c elt <span class="operator">*</span> 'd elt <span class="operator">-&gt;</span> <span class="operator">(</span>'a<span class="operator">*</span>'b<span class="operator">*</span>'c<span class="operator">*</span>'d <span class="operator">-&gt;</span> 'e<span class="operator">)</span> <span class="operator">-&gt;</span> 'e rhs
+  <span class="governing">val</span> <span class="function-name">rhs5</span><span class="operator">:</span> 'a elt <span class="operator">*</span> 'b elt <span class="operator">*</span> 'c elt <span class="operator">*</span> 'd elt <span class="operator">*</span> 'e elt <span class="operator">-&gt;</span> <span class="operator">(</span>'a<span class="operator">*</span>'b<span class="operator">*</span>'c<span class="operator">*</span>'d<span class="operator">*</span>'e <span class="operator">-&gt;</span> 'f<span class="operator">)</span> <span class="operator">-&gt;</span> 'f rhs
+  <span class="governing">val</span> <span class="function-name">rhs6</span><span class="operator">:</span> 'a elt <span class="operator">*</span> 'b elt <span class="operator">*</span> 'c elt <span class="operator">*</span> 'd elt <span class="operator">*</span> 'e elt <span class="operator">*</span> 'f elt <span class="operator">-&gt;</span> 
+    <span class="operator">(</span>'a<span class="operator">*</span>'b<span class="operator">*</span>'c<span class="operator">*</span>'d<span class="operator">*</span>'e<span class="operator">*</span>'f <span class="operator">-&gt;</span> 'g<span class="operator">)</span> <span class="operator">-&gt;</span> 'g rhs
+  <span class="governing">val</span> <span class="function-name">rhs7</span><span class="operator">:</span> 'a elt <span class="operator">*</span> 'b elt <span class="operator">*</span> 'c elt <span class="operator">*</span> 'd elt <span class="operator">*</span> 'e elt <span class="operator">*</span> 'f elt <span class="operator">*</span> 'g elt <span class="operator">-&gt;</span> 
+    <span class="operator">(</span>'a<span class="operator">*</span>'b<span class="operator">*</span>'c<span class="operator">*</span>'d<span class="operator">*</span>'e<span class="operator">*</span>'f<span class="operator">*</span>'g <span class="operator">-&gt;</span> 'h<span class="operator">)</span> <span class="operator">-&gt;</span> 'h rhs
+
+  <span class="governing">type</span> <span class="type">untyped_rule</span>
+
+  <span class="governing">val</span> <span class="function-name">mk_rule</span><span class="operator">:</span> 'a nt <span class="operator">-&gt;</span> 'a rhs <span class="operator">-&gt;</span> untyped_rule
+
+  <span class="governing">val</span> <span class="function-name">get_higher_precedences</span><span class="operator">:</span> prec <span class="operator">-&gt;</span> prec list
+<span class="governing">end</span>
+
+
+<span class="comment-delimiter">(*</span><span class="comment">
+
+</span><span class="comment">left assoc; * has higher prec. than +</span><span class="comment">
+
+</span><span class="comment">E+ -&gt; E+ + Int | E*
+E* -&gt; E* * Int</span><span class="comment">
+
+</span><span class="comment">Alternatively:</span><span class="comment">
+
+</span><span class="comment">Ex -&gt; Ex opx Int | Ey  where y&gt;x</span><span class="comment">
+
+</span><span class="comment">So, given a raw nonterm E and a subscript x we need to produce a list of rhs which includes the Ey for y&gt;x</span><span class="comment">
+
+</span><span class="comment-delimiter">*)</span>
+
+<span class="governing">module</span> <span class="module">Arithmetic_parser</span><span class="operator">(</span><span class="variable-name">Required</span><span class="operator">:</span><span class="type">REQUIRED</span><span class="operator">)</span><span class="variable-name"> </span><span class="operator">=</span> <span class="governing">struct</span>
+  <span class="governing">open </span><span class="module">Required</span>
+
+  <span class="governing">let</span> <span class="operator">(</span><span class="variable-name"> </span><span class="operator">--&gt;</span><span class="variable-name"> </span><span class="operator">)</span> <span class="operator">=</span> mk_rule 
+
+  <span class="governing">let</span> <span class="variable-name">_E</span> <span class="operator">=</span> mk_raw <span class="operator">()</span>
+
+  <span class="governing">let</span> <span class="function-name">no_action</span><span class="variable-name"> x</span> <span class="operator">=</span> <span class="operator">()</span>
+
+  <span class="comment-delimiter">(* </span><span class="comment">NOTE the actions are dummies in the following </span><span class="comment-delimiter">*)</span>
+  <span class="governing">let</span> <span class="governing">rec</span> <span class="function-name">rules</span><span class="variable-name"> </span><span class="operator">~</span><span class="variable-name">raw_ </span><span class="operator">~</span><span class="variable-name">prec</span> <span class="operator">=</span> 
+    <span class="keyword">assert</span><span class="operator">(</span>raw_ <span class="operator">=</span> _E<span class="operator">);</span> <span class="comment-delimiter">(* </span><span class="comment">only 1 nt </span><span class="comment-delimiter">*)</span>
+    <span class="governing">let</span> <span class="variable-name">_Ex</span> <span class="operator">=</span> raw_to_nt _E prec <span class="governing">in</span>
+
+    <span class="governing">let</span> <span class="variable-name">rule</span> <span class="operator">=</span> 
+      <span class="comment-delimiter">(* </span><span class="comment">Ex -&gt; Ex opx In</span><span class="comment">t</span><span class="comment"> </span><span class="comment-delimiter">*)</span>
+      _Ex <span class="operator">--&gt;</span>rhs3 <span class="operator">(</span>nt _Ex<span class="operator">,</span> op2elt prec<span class="operator">,</span> int_<span class="operator">)</span>   no_action 
+    <span class="governing">in</span>
+    <span class="comment-delimiter">(* </span><span class="comment">Ex -&gt; Ey where y&gt;x; we just get those higher precedences y and
+       add rules Ex -&gt; Ey for each </span><span class="comment-delimiter">*)</span>
+    <span class="governing">let</span> <span class="variable-name">rules</span> <span class="operator">=</span> 
+      prec 
+      <span class="operator">|&gt;</span> get_higher_precedences 
+      <span class="operator">|&gt;</span> <span class="module">List.</span>map <span class="operator">(</span><span class="keyword">fun</span> <span class="variable-name">y</span> <span class="operator">-&gt;</span>
+          <span class="governing">let</span> <span class="variable-name">_Ey</span> <span class="operator">=</span> raw _E y <span class="governing">in</span>
+          <span class="comment-delimiter">(* </span><span class="comment">Ex -&gt; Ey </span><span class="comment-delimiter">*)</span>
+          _Ex <span class="operator">--&gt;</span>rhs1 _Ey   no_action<span class="operator">)</span>
+    <span class="governing">in</span>
+    rule<span class="operator">::</span>rules
+<span class="governing">end</span>
+</pre>
+
+ </body>
+</html>
