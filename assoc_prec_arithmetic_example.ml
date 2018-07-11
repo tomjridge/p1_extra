@@ -42,12 +42,12 @@ end
 
 left assoc; * has higher prec. than +
 
-E+ -> E+ + Int | E*
+E+ -> E+ + E* | E*
 E* -> E* * Int
 
 Alternatively:
 
-Ex -> Ex opx Int | Ey  where y>x
+Ex -> Ex opx Ey | Ey  where y>x
 
 So, given a raw nonterm E and a subscript x we need to produce a list of rhs which includes the Ey for y>x
 
@@ -63,25 +63,28 @@ module Arithmetic_parser(Required:REQUIRED) = struct
   let no_action x = ()
 
   (* NOTE the actions are dummies in the following *)
-  let rec rules ~raw_ ~prec = 
+  let rules ~raw_ ~prec = 
     assert(raw_ = _E); (* only 1 nt *)
     let _Ex = raw_to_nt _E prec in
+    
+    (* Ex -> int *)
+    [_Ex -->rhs1 int_  no_action]@
 
-    let rule = 
-      (* Ex -> Ex opx Int *)
-      _Ex -->rhs3 (nt _Ex, op2elt prec, int_)   no_action 
-    in
-    (* Ex -> Ey where y>x; we just get those higher precedences y and
-       add rules Ex -> Ey for each *)
-    let rules = 
+    begin
       prec 
       |> get_higher_precedences 
       |> List.map (fun y ->
           let _Ey = raw _E y in
-          (* Ex -> Ey *)
-          _Ex -->rhs1 _Ey   no_action)
-    in
-    rule::rules
+          [
+
+            (* Ex -> Ex opx Ey *)
+            _Ex -->rhs3 (nt _Ex, op2elt prec, _Ey)  no_action;
+
+            (* Ex -> Ey *)
+            _Ex -->rhs1 _Ey   no_action
+          ])
+      |> List.concat
+    end
 end
 
 
