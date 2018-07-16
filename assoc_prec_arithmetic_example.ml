@@ -93,6 +93,9 @@ end
 NOTE an alternative is just to parse using E -> E op Int; then actions
    return the parse tree and the operator precedence; finally discard
    any results where the precedence doesn't respect the grammar
-   intention, eg + can have * as left component and int as right
+   intention, eg + can have * as left component and int as right; this
+   has the advantage that the grammar is much simpler than the one
+   shown above! The disadvantage is that the action phase is likely
+   longer (but probably not the parsing, if using Earley).
 
 *)
