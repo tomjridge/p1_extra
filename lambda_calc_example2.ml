@@ -1,3 +1,4 @@
+(*
 (* lambda calc grammar ---------------------------------------------- *)
 
 (* NOTE uses parsing_dsl2 *)
@@ -6,18 +7,20 @@ open P1_core
 open Parsing_dsl2
 open Nt
 
-module E_other = struct
+module X = struct
+  type carrier = int
+  let c2s c = string_of_int c
   type 'a e_other
   type eo_ops = {
     eo2p: 'a. 'a e_other -> 'a parser_
   }
 end
 
-module Dsl2 = Make(E_other)
+module Dsl2 = Make(X)
 open Dsl2
 open Rule_ops
 
-let eo_ops = E_other.{eo2p=fun eo -> failwith "impossible: no other elts"}
+let eo_ops = X.{eo2p=fun eo -> failwith "impossible: no other elts"}
 
 open Grammar_requires
 open Elt.Terminals
@@ -33,15 +36,16 @@ let lambda_calc_grammar =
   let _TERM, _LAM, _APP, _VAR, _S = mk_nt(),mk_nt(),mk_nt(),mk_nt(),mk_nt() in
   let __ = re "[ \n]*" in
   let rules _X = 
-    match _X with
+    let x = nt2c _X in
+    match () with
 
-    | _ when _X=_S -> [rhs2  (nt _TERM, eof)  (fun (t,_) -> t)]
+    | _ when x = nt2c _S -> [rhs2  (nt _TERM, eof)  (fun (t,_) -> t)]
 
     (* NOTE this grammar has left recursion (app), and is highly
        ambiguous *)
     (* t = \\ x. t | t1 t2 | x | (t) *)
 
-    | _ when _X=_TERM -> [
+    | _ when x=nt2c _TERM -> [
         rhs1 (nt _LAM)  (fun t -> t);
         rhs1 (nt _APP)  (fun t -> t);
         rhs1 (nt _VAR)  (fun t -> t);
@@ -49,25 +53,25 @@ let lambda_calc_grammar =
           (a "(", __, nt _TERM, __ , a ")")
           (fun (bar,_,t,_,ket) -> t)]
 
-    | _ when _X=_LAM -> [
+    | _ when x=nt2c _LAM -> [
         rhs7 
           (a "\\", __, nt _VAR, __, a ".", __, nt _TERM) 
-          (fun (lam,_,Var v,_,dot,_,t) -> Lam(v,t))]
+          (fun (lam,_,v,_,dot,_,t) -> Lam(v,t))]
 
-    | _ when _X=_APP -> [
+    | _ when x=nt2c _APP -> [
         rhs3
           (nt _TERM, __ , nt _TERM)
           (fun (t1,_,t2) -> App(t1,t2))]
 
-    | _ when _X=_VAR -> [rhs1  (re "[a-z]+")  (fun v -> Var v)]
+    | _ when x=nt2c _VAR -> [rhs1  (re "[a-z]+")  (fun v -> v)]
 
     | _ -> failwith "unknown nt"
   in
   ({rules=(Obj.magic rules)}, _S)  (* S is start symbol *)
 [@@ocaml.warning "-8"]
 
-(* FIXME this can't work, or at least is very dangerous: the _X
-   constrains all the nonterms to have the same type :( *)
+(* FIXME this still can't work - have to go via untyped at some point
+   :( *)
 
 
 let lambda_calc_parser = 
@@ -77,3 +81,4 @@ let lambda_calc_parser =
 let _ : term P1_core.parser_ = lambda_calc_parser
 
 (* example of use in bin/test_lambda_calc2.ml FIXME *)
+*)

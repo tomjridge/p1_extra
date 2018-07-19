@@ -18,33 +18,42 @@ open P1_core
 
 module Nt = (
 struct
-  type 'a nt = int
+  type ('a,'c) nt = int
   let counter = ref 0
   let mk_nt () = counter:=!counter+1; !counter
-  let to_int x = x
+  let nt2c x = Obj.magic x  (* FIXME 'c is just some carrier type like int *)
 end : sig 
-  type 'a nt
-  val mk_nt: unit -> 'a nt 
-  val to_int: 'a nt -> int
+  type ('a,'c) nt
+  val mk_nt: unit -> ('a,'c) nt 
+  val nt2c: ('a,'c) nt -> 'c
 end)
 open Nt
 
 (* make_elt --------------------------------------------------------- *)
 
 type nt2p = {
-  nt2p: 'a. 'a nt -> 'a parser_
+  nt2p: 'a 'c. ('a,'c) nt -> 'a parser_
 }
 
 (* We want to keep the nature of the elts flexible so we can
    incorporate operators like star etc *)
-module Make(E_other:sig 
-    type 'a e_other 
+module Make(X:sig 
+    type carrier
+    val c2s: carrier -> string
+    type 'a e_other      
     type eo_ops = {
       eo2p: 'a. 'a e_other -> 'a parser_
     }
   end) = struct
 
-  open E_other
+  open X
+
+
+  module Nt' = struct
+    type nonrec 'a nt = ('a,carrier) nt
+  end
+
+  open Nt'
 
   module Elt = struct
 
@@ -165,13 +174,13 @@ module Make(E_other:sig
 
 
   module Ops_requires = struct
-    type 'a nt = 'a Nt.nt
+    type nonrec 'a nt = 'a nt
     type 'a elt = 'a Elt.elt
     type 'a rhs = 'a Rhs.rhs
   end
 
   module Grammar_requires = struct
-    include Nt
+    include Nt'
     include Elt
     include Rhs
     include Rule_ops
@@ -207,7 +216,7 @@ module Make(E_other:sig
             rhs_to_parser rhs))
     and nt_to_parser: 'a. 'a nt -> 'a parser_ = 
       fun nt -> 
-        let nt_s = string_of_int (Nt.to_int nt) in
+        let nt_s = c2s (nt2c nt) in
         P1_core.check nt_s (Obj.magic nt_to_parser' nt)
     and rhs_to_parser: 'a. 'a rhs -> 'a parser_ = 
       (* FIXME obviously the following is rather scary *)
