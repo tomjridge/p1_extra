@@ -218,7 +218,7 @@ type rhs'  (* = rhs *)
 type rule = { nt: nt'; rhs: rhs' }
 
 let coerce_rule sym rhs = 
-  let E_NT nt = sym in  (* we also assume all the lhs-s are nts *)
+  let nt = sym |> function E_NT nt -> nt [@@ocaml.warning "-8"] in  (* we also assume all the lhs-s are nts *)
   { nt; rhs=(Obj.magic rhs) }
 
 let f'' () =

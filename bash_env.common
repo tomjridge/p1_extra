@@ -6,7 +6,7 @@ SYNTAX=""
 # 8~"pattern-matching is not exhaustive"; 
 # 11~"this match case is unused";
 # 26~"unused variable s2"
-WARN="-w @f@p@u@s@40-8-11-26"
+WARN="-w @f@p@u@s@40-11-26"
 
 # -thread needed for core
   ocamlc="$DISABLE_BYTE ocamlfind ocamlc   -thread $WARN $PKGS $SYNTAX"

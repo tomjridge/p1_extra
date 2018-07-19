@@ -84,7 +84,7 @@ E -> x=E y=E z=E {{ x+y+z }}
           function [_;`String s;_] -> `Qu s | _ -> err __LOC__);
       _NT --> [_AZs] ** (
           function [`String x] -> `Nt x | _ -> err __LOC__); 
-    end
+    end  [@@ocaml.warning "-8"]
 
   ;;
 
@@ -307,6 +307,6 @@ let parse_grammar_file s = Internal_.(
   |> P1_core.run_parser (grammar_to_parser "Grammar") 
   |> (fun [x] -> x)
   |> pp_rules
-  |> List.map (fun (nt,rhs) -> {nt;rhs}))
+  |> List.map (fun (nt,rhs) -> {nt;rhs})) [@@ocaml.warning "-8"]
 
 let _ = parse_grammar_file

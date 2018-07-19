@@ -451,7 +451,7 @@ let grammar_to_parser' ~(rules:rule list) i =
         elt_to_parser s5)
       >> (fun (x,(y,(z,(w,u)))) -> act (Obj.magic (x,y,z,w,u)))
   in
-  nt_to_parser i
+  nt_to_parser i  [@@ocaml.warning "-8"]
 
 let _ = grammar_to_parser'
 

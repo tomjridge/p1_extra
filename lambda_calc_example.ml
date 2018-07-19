@@ -38,7 +38,7 @@ let lambda_calc_grammar =
       (fun (t1,_,t2) -> App(t1,t2));
 
     _VAR -->rhs1  (re "[a-z]+")  (fun v -> Var v)
-  ] 
+  ] [@@ocaml.warning "-8"]
   in
   (rules, _S)  (* S is start symbol *)
 

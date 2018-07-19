@@ -1,4 +1,4 @@
-(* FIXME factor out the latter part of this file with pgf2 *)
+
 
 open P1_core
 
