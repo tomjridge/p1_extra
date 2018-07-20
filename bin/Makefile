@@ -1,6 +1,6 @@
 SHELL:=bash
 
-all: test.native test_lambda_calc.native
+all: test.native test_lambda_calc.native test_logic.native
 
 %.native: %.ml
 	ocamlfind ocamlopt -w -8 -package p1_extra -linkpkg -o $@ $*.ml

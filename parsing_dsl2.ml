@@ -66,6 +66,7 @@ module Make(X:sig
       open P1_terminals
       (* generic; could even add to Elt.Terminals ; but still need to explicitly open *)
       let a s = E_tm (a s)
+      let upto_a s = E_tm (upto_a s)
       let whitespace_and_comments = E_tm ws
       let re s = E_tm (re (Str.regexp s))
       let eof = E_tm eof
