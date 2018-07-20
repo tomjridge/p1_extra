@@ -18,28 +18,26 @@ open P1_core
 
 module Nt = (
 struct
-  type ('a,'c) nt = int
+  type 'a nt = int (* could be anything that is hashable; probably also needs some concrete repn. for p1 context *)
   let counter = ref 0
   let mk_nt () = counter:=!counter+1; !counter
-  let nt2c x = Obj.magic x  (* FIXME 'c is just some carrier type like int *)
+  let nt2int nt = nt
 end : sig 
-  type ('a,'c) nt
-  val mk_nt: unit -> ('a,'c) nt 
-  val nt2c: ('a,'c) nt -> 'c
+  type 'a nt
+  val mk_nt: unit -> 'a nt 
+  val nt2int: 'a nt -> int
 end)
 open Nt
 
 (* make_elt --------------------------------------------------------- *)
 
 type nt2p = {
-  nt2p: 'a 'c. ('a,'c) nt -> 'a parser_
+  nt2p: 'a. 'a nt -> 'a parser_
 }
 
 (* We want to keep the nature of the elts flexible so we can
    incorporate operators like star etc *)
 module Make(X:sig 
-    type carrier
-    val c2s: carrier -> string
     type 'a e_other      
     type eo_ops = {
       eo2p: 'a. 'a e_other -> 'a parser_
@@ -50,14 +48,13 @@ module Make(X:sig
 
 
   module Nt' = struct
-    type nonrec 'a nt = ('a,carrier) nt
+    type nonrec 'a nt = 'a nt
   end
 
   open Nt'
 
+
   module Elt = struct
-
-
     type _ elt = 
       | E_nt: 'a nt -> 'a elt
       | E_tm: 'a parser_ -> 'a elt  
@@ -121,6 +118,7 @@ module Make(X:sig
       ('a*'b*'c*'d*'e*'f -> 'g) -> 'g rhs = fun x y -> Rhs6(Obj.magic x,Obj.magic y)
     let rhs7 : 'a elt * 'b elt * 'c elt * 'd elt * 'e elt * 'f elt * 'g elt -> 
       ('a*'b*'c*'d*'e*'f*'g -> 'h) -> 'h rhs = fun x y -> Rhs7(Obj.magic x,Obj.magic y)
+
   end
 
   (* make_rule_ops ----------------------------------------------------- *)
@@ -163,7 +161,7 @@ module Make(X:sig
     val rhs7: 'a elt * 'b elt * 'c elt * 'd elt * 'e elt * 'f elt * 'g elt -> 
       ('a*'b*'c*'d*'e*'f*'g -> 'h) -> 'h rhs
 
-
+    (* one way of expressing the grammar *)
     type rules_ops = {
       rules: 'a. 'a nt -> 'a rhs list;
     }
@@ -179,6 +177,8 @@ module Make(X:sig
     type 'a rhs = 'a Rhs.rhs
   end
 
+
+
   module Grammar_requires = struct
     include Nt'
     include Elt
@@ -186,6 +186,7 @@ module Make(X:sig
     include Rule_ops
   end
   open Grammar_requires
+
 
 
   (* generic: grammar_to_parser --------------------------------------- *)
@@ -216,7 +217,7 @@ module Make(X:sig
             rhs_to_parser rhs))
     and nt_to_parser: 'a. 'a nt -> 'a parser_ = 
       fun nt -> 
-        let nt_s = c2s (nt2c nt) in
+        let nt_s = nt |> nt2int |> string_of_int in
         P1_core.check nt_s (Obj.magic nt_to_parser' nt)
     and rhs_to_parser: 'a. 'a rhs -> 'a parser_ = 
       (* FIXME obviously the following is rather scary *)
@@ -265,6 +266,11 @@ module Make(X:sig
   let _ : eo_ops:eo_ops -> rules_ops:rules_ops -> start:'a nt -> 'a P1_core.parser_ = grammar_to_parser
 
 
+
+  type untyped_rhs
+  let arhs2urhs (rhs:'a rhs) : untyped_rhs = Obj.magic rhs
+  let urhs2arhs (nt:'a nt) (rhs:untyped_rhs) : 'a rhs = Obj.magic rhs
+
   type untyped_rule = Urule: 'a nt * 'a rhs -> untyped_rule
 
   let ( --> ) x y = Urule(x,y)  
@@ -272,21 +278,49 @@ module Make(X:sig
   let nt x = elt_ops.ant2aelt x
 
 
+  
+
   (* NOTE we assume equality and compare "work" for 'a nt *)
   (* FIXME perhaps we should develop a monadic dsl for the grammar, so
      that we don't have to work with untyped rules *)
   (* or perhaps the grammar is expressed as a function from NT to rhs list? *)
-      (*
-  let mk_rules us = 
-    (* first we make an assoc list of nt -> urule *)
-    us |> List.map (function Urule(nt,rhs) -> nt) |> fun nts ->
-    List.sort_uniq (Pervasives.compare) |> 
-    List.map (fun (nt,ant) -> 
-        let rs : 'a rule list ref = ref [] in
-        List.iter (function (Urule (nt',rhs)) -> 
-            if nt' = Obj.magic nt then rs:=(Obj.magic r)::!rs else ())
-      rules;
-    !rs
-*)    
+  let mk_rules_ops us = 
+    let tbl = Hashtbl.create 10 in
+    begin
+      (* init tbl *)
+      (* first we make a map of nt -> urhs *)
+      us |> List.map (function Urule(nt,rhs) -> (nt2int nt,arhs2urhs rhs)) |> fun rules ->
+      List.iter (fun (nt,urhs) -> 
+          let existing = 
+            try 
+              Hashtbl.find tbl nt 
+            with Not_found -> []
+          in
+          Hashtbl.replace tbl nt (urhs::existing)) rules
+    end;
+    let rules = 
+      fun nt ->
+        try 
+          Hashtbl.find tbl (nt2int nt) |> List.map (urhs2arhs nt)
+        with Not_found -> []
+    in
+    { rules }
+end
 
+
+(* no other elts ---------------------------------------------------- *)
+
+module Simple_elts = struct
+  type 'a e_other  (* no other elements *)
+  type eo_ops = {
+    eo2p: 'a. 'a e_other -> 'a parser_
+  }
+end
+
+module Simple_dsl = struct
+  include Make(Simple_elts)
+
+  let eo_ops = Simple_elts.{eo2p=fun eo -> failwith "impossible: no other elts"}
+                 
+  let grammar_to_parser ~rules_ops ~start = grammar_to_parser ~eo_ops ~rules_ops ~start
 end
