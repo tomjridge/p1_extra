@@ -96,6 +96,7 @@ module Make(X:sig
     type _f
     type _g
 
+    (* FIXME can't we have general types now and use a GADT? *)
     type 'z rhs = 
         Rhs1 of _a elt * (_a -> 'z)
       | Rhs2 of (_a elt * _b elt) * (_a * _b -> 'z) 
