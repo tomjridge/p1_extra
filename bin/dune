@@ -1,0 +1,4 @@
+(executables
+  (names generated_example test_combinators test_lambda_calc test_logic test_prs_grm_file_and_codegen)
+  (libraries p1_extra)
+)
