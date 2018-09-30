@@ -1,4 +1,9 @@
 (executables
-  (names generated_example test_combinators test_lambda_calc test_logic test_prs_grm_file_and_codegen)
-  (libraries p1_extra)
+  (names generated_example test_combinators test_lambda_calc test_logic)
+  (libraries p1_extra yojson ppx_deriving_yojson ppx_deriving_yojson.runtime)
 )
+
+(rule
+  (targets all.touch)
+  (deps (glob_files *.exe))
+  (action (write-file all.touch "this file records that all exes have been built")) )

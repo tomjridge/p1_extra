@@ -4,6 +4,8 @@
   (public_name p1_extra)
   (wrapped false)
   (preprocess (pps ppx_deriving_yojson))
-  (libraries p1_core yojson ppx_deriving_yojson))
+  (libraries p1_core yojson ppx_deriving_yojson ppx_deriving_yojson.runtime))
+
+; NOTE ppx_deriving_yojson.runtime seems to be necessary when subsequently compiling the exes
 
 (include_subdirs unqualified)

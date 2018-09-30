@@ -2,7 +2,9 @@ SHELL:=bash
 
 build: 
 	dune build @install
-	dune build bin/test_combinators.exe  # FIXME and more; how to build all exes?
+	dune build bin/all.touch
+
+#	dune build bin/test_combinators.exe bin/test_lambda_calc.exe  # FIXME and more; how to build all exes?
 
 
 install:

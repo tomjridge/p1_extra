@@ -16,6 +16,9 @@ install: [make "install"]
 remove: ["ocamlfind" "remove" "p1_extra"]
 
 depends: [
-  "p1_core"
+  "p1_core" 
+  "yojson"
+  "ppx_deriving_yojson"
+  "ppx_deriving_yojson.runtime" # ?
 ]
 
