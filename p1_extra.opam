@@ -10,10 +10,9 @@ bug-reports: "https://github.com/tomjridge/p1_extra/issues"
 dev-repo: "https://github.com/tomjridge/p1_extra.git"
 
 build: [
-  [make "all"]
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
 ]
-install: [make "install"]
-remove: ["ocamlfind" "remove" "p1_extra"]
 
 depends: [
   "p1_core" 
