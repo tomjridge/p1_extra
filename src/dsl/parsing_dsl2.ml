@@ -11,6 +11,10 @@
    since it creates another nt and adds rules for that, but we would
    really like to treat it as such
 
+   FIXME not clear that E_other approach can work if we need to
+   recurse or similar (eg star E should be treated as a nonterminal
+   that calls (parse E) recursively)
+
  *)
 
 open P1_core

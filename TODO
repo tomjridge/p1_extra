@@ -1,6 +1,13 @@
 -*- org -*-
 
-- move to src subdir
+(latest at the end of following list)
+
 - use dsl with earley parser
 - a dsl without actions, or with multiple (configurable)
   actions... but perhaps we just pass in the actions as functions
+- add memoization to parsing_dsl2 (should make performance bearable at
+  least for small inputs)
+- think more about how to integrate state (memo etc) with p1_core
+  (especially let rec, where memo hashtables need to be created
+  outside the let rec; but we can index on the nonterm to locate the
+  memo table)
