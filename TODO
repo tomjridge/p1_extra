@@ -11,3 +11,5 @@
   (especially let rec, where memo hashtables need to be created
   outside the let rec; but we can index on the nonterm to locate the
   memo table)
+- add the optimization that, on first parsing a nt at posn i, clears
+  the context then reuses this memoizaed result for all future parses
