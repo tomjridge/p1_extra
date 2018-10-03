@@ -19,4 +19,4 @@ RUN opam update
 RUN eval `opam config env` && opam pin add tjr_lib_core https://github.com/tomjridge/tjr_lib.git
 RUN eval `opam config env` && opam pin add tjr_lib https://github.com/tomjridge/tjr_lib.git
 RUN eval `opam config env` && opam pin add p1_core https://github.com/tomjridge/p1_core.git
-RUN eval `opam config env` && opam pin add p1_extra https://github.com/tomjridge/p1_extra
+RUN eval `opam config env` && opam pin add p1_extra https://github.com/tomjridge/p1_extra.git
