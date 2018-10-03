@@ -1,7 +1,7 @@
 opam-version: "1.2"
 name: "p1_extra"
 
-version: "opam??"
+version: "0.0.1"
 
 maintainer: "Tom Ridge <tom.j.ridge@googlemail.com>"
 authors: "Tom Ridge <tom.j.ridge@googlemail.com>"
@@ -10,7 +10,7 @@ bug-reports: "https://github.com/tomjridge/p1_extra/issues"
 dev-repo: "https://github.com/tomjridge/p1_extra.git"
 
 build: [
-  ["dune" "subst"] {pinned}
+#  ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
 ]
 
@@ -18,6 +18,5 @@ depends: [
   "p1_core" 
   "yojson"
   "ppx_deriving_yojson"
-  "ppx_deriving_yojson.runtime" # ?
 ]
 
